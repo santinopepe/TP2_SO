@@ -11,6 +11,6 @@ void * allocMemory(MemoryManagerADT const restrict memoryManager, const size_t m
 
 void free(void * memoryToFree); 
 
-void getMemoryInfo(MemInfo * mem); 
+void getMemoryInfo(MemoryInfoCDT * mem); 
 
 #endif

@@ -1,5 +1,5 @@
 #include <stdint.h>
-#include <memory.h>
+#include <registers.h>
 #include <video.h>
 
 uint64_t _regSnapshot[QTY_REGS] = {0};      /* Vector de valores de registros */

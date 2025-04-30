@@ -16,6 +16,8 @@
 #define ACS_INT_386 	0x0E		/* Interrupt GATE 32 bits */
 #define ACS_INT         ( ACS_PRESENT | ACS_INT_386 )
 
+#define MEMORY_MANAGER_ADDRESS 0x50000
+#define SEMAPHORE_MANAGER_ADDRESS 0x60000 
 
 #define ACS_CODE        (ACS_PRESENT | ACS_CSEG | ACS_READ)
 #define ACS_DATA        (ACS_PRESENT | ACS_DSEG | ACS_WRITE)

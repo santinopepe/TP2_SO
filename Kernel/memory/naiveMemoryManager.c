@@ -1,3 +1,4 @@
+#include <>
 #include <MemoryManager.h>
 
 typedef struct MemoryManagerCDT {
@@ -19,6 +20,6 @@ void *allocMemory(MemoryManagerADT const restrict memoryManager, const size_t me
 	return (void *) allocation;
 }
 
-void free(void * memoryToFree) {
-    
+void freeMemory(MemoryManagerADT const restrict memoryManager, void *const restrict memoryToFree) {
+    memoryManager->memoryInfo
 }

@@ -5,7 +5,7 @@
 #include <color.h>
 #include <speaker.h>
 #include <time.h>
-#include <memory.h>
+#include <registers.h>
 /* File Descriptors*/
 #define STDIN 0
 #define STDOUT 1
