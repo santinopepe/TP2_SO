@@ -43,6 +43,8 @@ static void tronZen();
 static void fontSize(char * size);
 static void printMem(char * pos);
 static int getCommandIndex(char * command);
+static void myClear();
+
 
 static Command commands[QTY_COMMANDS];
 
@@ -57,7 +59,7 @@ void init() {
     commands[7] = (Command){ "tron-zen", "Juego Tron Light Cycles con un unico jugador", .f = (void*) &tronZen, NO_PARAMS};
     commands[8] = (Command){ "font-size", "Cambio de dimensiones de la fuente. Para hacerlo escribir el comando seguido de un numero", .g = (void*) &fontSize, SINGLE_PARAM};
     commands[9] = (Command){ "printmem", "Realiza un vuelco de memoria de los 32 bytes posteriores a una direccion de memoria en formato hexadecimal enviada por parametro", .g = (void*) &printMem, SINGLE_PARAM};
-    commands[10] = (Command){ "clear", "Limpia toda la pantalla", .f = (void*) &clear, NO_PARAMS};
+    commands[10] = (Command){ "clear", "Limpia toda la pantalla", .f = (void*) &myClear, NO_PARAMS};
 }
 
 void run_shell() {
@@ -177,4 +179,8 @@ static void man(char * command){
         printf("%s\n", usages[idx]);
     else
         printErr(INVALID_COMMAND);
+}
+
+static void myClear(){
+    clear();
 }
