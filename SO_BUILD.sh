@@ -21,6 +21,7 @@ docker run --rm -v "${PWD}:/root" --privileged -ti "$IMAGE_NAME" bash -c "
     make -C ${PROJECT_PATH}
 "
 
+clear
 
 if [ "$SKIP_RUN" = false ]; then
   ./run.sh
