@@ -1,18 +1,8 @@
 #include <memoryInfo.h>
-#include <memoryManager.h>
+#include <MemoryManager.h>
 #include <stdint.h>
 #include <string.h>
 
-typedef struct MemoryInfoCDT{
-    uint64_t totalMemory;
-    uint64_t freeMemory;
-    uint64_t usedMemory;
-    uint64_t totalPages;
-    uint64_t freePages;
-    uint64_t usedPages;
-    uint64_t pageSize;
-    char memoryType[16];
-} MemoryInfoCDT;
 
 void initializeMemoryInfo(MemoryInfoCDT *memoryInfo) {
     if (memoryInfo == NULL) {
@@ -29,8 +19,7 @@ void initializeMemoryInfo(MemoryInfoCDT *memoryInfo) {
     strcpy(memoryInfo->memoryType, "Unknown"); // Valor predeterminado para el tipo de memoria
 }
 
-
-MemoryInfoCDT *createMemoryInfoCopy(MemoryInfoCDT *memoryInfo, MemoryManagerADT *memoryManager) {
+MemoryInfoADT *createMemoryInfoCopy(MemoryInfoADT *memoryInfo) {
     MemoryInfoCDT *copy = (MemoryInfoCDT *) allocMemory(memoryManager ,sizeof(MemoryInfoCDT));
     if (copy == NULL) {
         return NULL; // Handle memory allocation failure

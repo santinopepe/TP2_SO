@@ -1,55 +1,67 @@
-#include <memoryManager.h>
+#include <MemoryManager.h>
+#include <stdint.h>
 #include <memoryInfo.h>
 
 #define PAGE_SIZE 4096 * sizeof(char) // 4KB
 #define USED 1
 #define FREE 0
 #define BITS_PER_BYTE 8
+#define BORDER 2 
+
+static void *firstAdress;
 
 typedef struct MemoryManagerCDT {
     uint8_t *bitmap;       // Bitmap para manejar las páginas
-    uint64_t totalPages;   // Total de páginas
-    uint64_t totalSize;    // Tamaño total de la memoria
-	uint64_t usedBytes;    // Bytes usados
 	MemoryInfoADT memoryInfo;
-
 } MemoryManagerCDT;
 
 
 
 MemoryManagerADT createMemoryManager(void *const restrict memoryForMemoryManager, void *const restrict managedMemory, uint64_t totalSize) {
-    MemoryManagerADT memoryManager = (MemoryManagerADT) memoryForMemoryManager;
+    firstAdress = managedMemory;
+	MemoryManagerADT memoryManager = (MemoryManagerADT) memoryForMemoryManager;
 	initMemoryInfo(&memoryManager->memoryInfo);
 
 	memoryManager->bitmap = (uint8_t *) (memoryManager + sizeof(MemoryManagerCDT));
 
-    memoryManager->totalSize = totalSize;
-    memoryManager->totalPages = totalSize / PAGE_SIZE;
+    memoryManager->memoryInfo->totalSize = totalSize;
+    memoryManager->memoryInfo->totalPages = (totalSize-sizeof(MemoryManagerCDT)) / PAGE_SIZE;
 
-	for(int i = 0; i < memoryManager->totalPages; i++) {
+	for(int i = 0; i < memoryManager->memoryInfo->totalPages; i++) {
 		memoryManager->bitmap[i] = FREE;
 	}
 
-	memoryManager->usedBytes = 0;
+	memoryManager->memoryInfo->usedPages = 0;
 
     return memoryManager;
 }
 
-void *allocMemory(MemoryManagerADT const restrict memoryManager, const size_t memoryToAllocate) {
-
-	uint64_t totalPages = (memoryManager->totalSize / PAGE_SIZE) + 1;
+void *allocMemory(MemoryManagerADT  memoryManager, const size_t memoryToAllocate) {
 	uint8_t *allocation; 
-	Page * page = (Page *) memoryManager->firstPage;
 
-	uint8_t * currentPage = memoryManager->firstPage;
-	for (uint64_t i = 0; currentPage == NULL && i < totalPages; i++) {
-		currentPage = page->nextPage;
+	uint8_t pagesNeeded = (memoryToAllocate / PAGE_SIZE) + 1; // +1 para redondear hacia arriba
+
+	uint64_t freePages = 0;
+
+	for (uint64_t i = 0; i < memoryManager->memoryInfo->totalPages ; i++) {
+		if (memoryManager->bitmap[i] == FREE) {
+			freePages++;
+			if(freePages == pagesNeeded) {
+				allocation = memoryManager->bitmap + (i - pagesNeeded + 1) * PAGE_SIZE;
+				memoryManager->bitmap[i-pagesNeeded+1] = BORDER; // Marcar hasta donde se asigna la memoria
+				for (uint64_t j = i; j > i - pagesNeeded; j--) {
+					memoryManager->bitmap[j] = USED;
+				}
+				memoryManager->memoryInfo->usedPages += pagesNeeded;
+				return (void *) allocation;
+			}
+		}
+		else{
+			freePages = 0;
+		}
 	}
 
-
-	char *allocation = memoryManager->nextAddress;
-	memoryManager->nextAddress += memoryToAllocate;
-	return (void *) allocation;
+	return NULL;	
 }
 
 
@@ -59,6 +71,7 @@ void freeMemory(MemoryManagerADT const restrict memoryManager, void *const memor
     
 }
 
+/*
 // Obtener el estado de un bit en el bitmap
 static inline int getBit(uint8_t *bitmap, uint64_t index) {
     return (bitmap[index / BITS_PER_BYTE] >> (index % BITS_PER_BYTE)) & 1;
@@ -73,3 +86,4 @@ static inline void setBit(uint8_t *bitmap, uint64_t index) {
 static inline void clearBit(uint8_t *bitmap, uint64_t index) {
     bitmap[index / BITS_PER_BYTE] &= ~(1 << (index % BITS_PER_BYTE));
 }
+*/
