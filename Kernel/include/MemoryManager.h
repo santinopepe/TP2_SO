@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <memoryInfo.h>
 
-typedef struct MemoryManagerCDT *MemoryManagerADT;
+typedef struct MemoryManagerCDT * MemoryManagerADT;
 
 MemoryManagerADT createMemoryManager(void *const restrict memoryForMemoryManager, void *const restrict managedMemory);
 

@@ -1,21 +1,12 @@
 #ifndef MEMORY_INFO_H
 #define MEMORY_INFO_H
 
-typedef struct MemoryInfoCDT{
-    uint64_t totalMemory;
-    uint64_t freeMemory;
-    uint64_t usedMemory;
-    uint64_t totalPages;
-    uint64_t freePages;
-    uint64_t usedPages;
-    uint64_t pageSize;
-    char memoryType[16];
-} MemoryInfoCDT;
+typedef struct MemoryManagerCDT * MemoryManagerADT;
 
 typedef struct MemoryInfoCDT * MemoryInfoADT;
 
-MemoryInfoADT *createMemoryInfoCopy(MemoryInfoADT *memoryInfo);
+MemoryInfoADT *createMemoryInfoCopy(MemoryInfoADT memoryInfo);
 
-void initMemoryInfo(MemoryInfoADT *memoryInfo);
+void initMemoryInfo(MemoryInfoADT memoryInfo);
 
 #endif
