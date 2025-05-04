@@ -15,23 +15,18 @@ typedef struct MemoryInfoCDT{
 } MemoryInfoCDT;
 
 
-void initializeMemoryInfo(MemoryInfoCDT *memoryInfo) {
-    if (memoryInfo == NULL) {
-        return; // Manejar el caso de puntero nulo
-    }
 
-    memoryInfo->totalMemory = 0;
-    memoryInfo->freeMemory = 0;
-    memoryInfo->usedMemory = 0;
-    memoryInfo->totalPages = 0;
-    memoryInfo->freePages = 0;
-    memoryInfo->usedPages = 0;
-    memoryInfo->pageSize = 0;
-    strcpy(memoryInfo->memoryType, "Unknown"); // Valor predeterminado para el tipo de memoria
+
+void initMemoryInfo(MemoryInfoADT memoryInfo) {
+    if (memoryInfo) {
+        memset(memoryInfo, 0, sizeof(MemoryInfoCDT)); // Pone todo a cero
+        // Puedes poner valores por defecto si quieres
+        // strcpy(info->memoryType, "SimpleMM"); // Necesitas <string.h> o equivalente en kernel
+    }
 }
 
-MemoryInfoADT createMemoryInfoCopy(MemoryInfoADT  memoryInfo, MemoryManagerADT memoryManager) {
-    MemoryInfoADT copy = (MemoryInfoADT ) allocMemory(memoryManager ,sizeof(MemoryInfoCDT));
+MemoryInfoADT createMemoryInfoCopy(MemoryInfoADT  memoryInfo) {
+    MemoryInfoADT copy = (MemoryInfoADT) malloc(sizeof(MemoryInfoCDT));
     if (copy == NULL) {
         return NULL; // Handle memory allocation failure
     }
@@ -42,7 +37,7 @@ MemoryInfoADT createMemoryInfoCopy(MemoryInfoADT  memoryInfo, MemoryManagerADT m
     copy->freePages = memoryInfo->freePages;
     copy->usedPages = memoryInfo->usedPages;
     copy->pageSize = memoryInfo->pageSize;
-    strcpy(copy->memoryType, memoryInfo->memoryType);
+   // strcpy(copy->memoryType, memoryInfo->memoryType);
 
     return copy;
 }

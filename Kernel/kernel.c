@@ -3,6 +3,9 @@
 #include <moduleLoader.h>
 #include <interrupts.h>
 #include <video.h>
+#include <test_mm.h>
+#include <MemoryManager.h>
+
 
 extern uint8_t text;
 extern uint8_t rodata;
@@ -15,6 +18,7 @@ static const uint64_t PageSize = 0x1000;
 
 static void * const sampleCodeModuleAddress = (void*)0x400000;
 static void * const sampleDataModuleAddress = (void*)0x500000;
+static void * const heapStart = (void*)0x600000;
 
 typedef int (*EntryPoint)();
 
@@ -37,13 +41,34 @@ void initializeKernelBinary()
 {
 	void * moduleAddresses[] = { sampleCodeModuleAddress, sampleDataModuleAddress };
 	loadModules(&endOfKernelBinary, moduleAddresses);
+	createMemoryManager(heapStart, HEAP_SIZE); 
 	clearBSS(&bss, &endOfKernel - &bss);
 }
 
 int main()
 {	
 	load_idt();
+    
+
+#ifdef TEST_MM
+    char max_mem_str[] = "16777216"; // 16MB
+    char *test_argv[] = { max_mem_str, NULL }; 
+    uint64_t test_argc = 1;
+    printf("Starting Memory Manager test...\n"); 
+    uint64_t test_result = test_mm(test_argc, test_argv);
+    printf("Memory Manager test finished.\n"); 
+
+    if (test_result != 0) {
+        printf("--- Test del Memory Manager: FAILED ----\n"); 
+        while(1) _hlt(); 
+    } else {
+        printf("--- Test del Memory Manager: PASSED ----\n"); 
+    }
+#endif
+
 	((EntryPoint)sampleCodeModuleAddress)();
+
+    
 	while(1) _hlt();
 	return 0;
 }

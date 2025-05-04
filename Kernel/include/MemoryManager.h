@@ -3,15 +3,19 @@
 
 #include <stdlib.h>
 #include <memoryInfo.h>
+#include <stdint.h>
+
+#define HEAP_SIZE 0x10000000 // 256MB
 
 typedef struct MemoryManagerCDT * MemoryManagerADT;
 
-MemoryManagerADT createMemoryManager(void *const restrict memoryForMemoryManager, void *const restrict managedMemory);
+MemoryManagerADT createMemoryManager(void * startMem, uint64_t totalSize); 
 
-void * allocMemory(MemoryManagerADT const restrict memoryManager, const size_t memoryToAllocate);
+void * malloc(const size_t memoryToAllocate);
 
 void free(void * memoryToFree); 
 
-void getMemoryInfo(MemoryInfoCDT * mem); 
+void getMemoryInfo(MemoryInfoADT * mem); 
 
-#endif
+#endif // MEMORY_MANAGER_H
+
