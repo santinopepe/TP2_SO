@@ -28,7 +28,7 @@ else
 fi
 
 
-docker run --rm -v "${PWD}:/root" --privileged -ti "$IMAGE_NAME" bash -c "
+docker run --rm -v "${PWD}:/root" --privileged  "$IMAGE_NAME" bash -c "
     echo '>>> Cleaning Toolchain...'
     make clean -C ${PROJECT_PATH}/Toolchain
     echo '>>> Cleaning Project...'
