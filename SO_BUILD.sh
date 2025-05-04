@@ -6,6 +6,7 @@ IMAGE_NAME="agodio/itba-so-multi-platform:3.0"
 PROJECT_PATH="/root"
 SKIP_RUN=false
 BUILD_TEST_MM=false
+MANU = false
 
 # Verificar argumentos del script
 for arg in "$@"; do
@@ -13,7 +14,10 @@ for arg in "$@"; do
     SKIP_RUN=true
   elif [[ "$arg" == "--test-mm" ]]; then
     BUILD_TEST_MM=true
+  elif [["$arg" == "-manu" ]];  then
+    MANU=true
   fi
+    
 done
 
 # <-- CORRECCIÓN 1: Inicializa MAKE_COMMAND con el comando base ANTES del if
@@ -28,21 +32,24 @@ else
 fi
 
 
-docker run --rm -v "${PWD}:/root" --privileged -e TERM=xterm "$IMAGE_NAME" bash -c "
-    set -e
+docker run --rm -v "${PWD}:/root" --privileged -ti "$IMAGE_NAME" bash -c "
     echo '>>> Cleaning Toolchain...'
     make clean -C ${PROJECT_PATH}/Toolchain
     echo '>>> Cleaning Project...'
     make clean -C ${PROJECT_PATH}
     echo '>>> Building Toolchain...'
     make -C ${PROJECT_PATH}/Toolchain
-    echo '>>> Building Project using command: ${MAKE_COMMAND}'
-    ${MAKE_COMMAND}
+    echo '>>> Building Project using command: ${MAKE_COMMAND}' # Muestra el comando final
+    ${MAKE_COMMAND} # <-- CORRECCIÓN 2: Ejecuta UNICAMENTE la variable MAKE_COMMAND
     echo '>>> Build finished inside Docker.'
-    exit 0
 "
+
 # Limpia la terminal del host (opcional)
 clear
+
+if [ "$MANU" = true ]; then
+  sudo chmod 777 Image/x64BareBonesImage.qcow2
+fi
 
 if [ "$SKIP_RUN" = false ]; then
   echo ">>> Running the kernel using run.sh..."

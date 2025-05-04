@@ -6,6 +6,9 @@
 #include <stdint.h>
 
 #define HEAP_SIZE 0x10000000 // 256MB
+#define PAGE_SIZE 64
+#define USED 1
+#define FREE 0
 
 typedef struct MemoryManagerCDT * MemoryManagerADT;
 

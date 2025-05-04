@@ -20,17 +20,6 @@ typedef struct MemoryManagerCDT {
     MemoryInfoADT memoryInfo; // Puntero a la estructura de información
 } MemoryManagerCDT;
 
-typedef struct MemoryInfoCDT{
-    uint64_t totalMemory;
-    uint64_t freeMemory;
-    uint64_t usedMemory;
-    uint64_t totalPages;
-    uint64_t freePages;
-    uint64_t usedPages;
-    uint64_t pageSize;
-    char memoryType[16];
-} MemoryInfoCDT;
-
 
 
 MemoryManagerADT createMemoryManager(void * startMem, uint64_t totalSize) {
