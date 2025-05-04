@@ -16,19 +16,18 @@ jobs:
       uses: actions/checkout@v4 
 
     - name: Make scripts executable
-      # Asegúrate de que tu script de build (el que modificamos)
+      # Asegúrate de que tu script de build (SO_BUILD.sh)
       # y run.sh tengan permisos de ejecución.
-      # Reemplaza 'tu_script_de_ejecucion.sh' por el nombre real de tu script.
       run: |
-        chmod +x SO_BUILD.sh
-        chmod +x run.sh
+        
+        chmod +x ./SO_BUILD.sh 
+        chmod +x ./run.sh
 
     - name: Build kernel with MM test
       # Ejecuta tu script de build dentro de Docker
-      # Usamos --no-run para que el script NO ejecute run.sh automáticamente al final,
-      # ya que queremos controlarla ejecución en el siguiente paso para capturar la salida.
+      # Usamos --no-run para que el script NO ejecute run.sh automáticamente al final.
       # Asegúrate de que tu script acepte --test-mm y --no-run.
-      run: SO_BUILD.sh --test-mm --no-run
+      run: ./SO_BUILD.sh --test-mm --no-run
 
     - name: Run kernel in QEMU and capture output
       # Ejecuta el kernel compilado en QEMU usando tu script run.sh

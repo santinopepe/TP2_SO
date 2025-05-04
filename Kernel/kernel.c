@@ -49,7 +49,7 @@ int main()
 {	
 	load_idt();
     
-
+/* Agregue esto para tener la posiblidad de ejecutar el test_mm.c dentro de kernel space*/
 #ifdef TEST_MM
     char max_mem_str[] = "16777216"; // 16MB
     char *test_argv[] = { max_mem_str, NULL }; 
