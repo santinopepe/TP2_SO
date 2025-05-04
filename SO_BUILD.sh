@@ -28,10 +28,8 @@ else
 fi
 
 
-docker run --rm -v "${PWD}:/root" --privileged "$IMAGE_NAME" bash -c "
-    set -e 
-    export TERM=xterm 
-
+docker run --rm -v "${PWD}:/root" --privileged -e TERM=xterm "$IMAGE_NAME" bash -c "
+    set -e
     echo '>>> Cleaning Toolchain...'
     make clean -C ${PROJECT_PATH}/Toolchain
     echo '>>> Cleaning Project...'
@@ -39,11 +37,9 @@ docker run --rm -v "${PWD}:/root" --privileged "$IMAGE_NAME" bash -c "
     echo '>>> Building Toolchain...'
     make -C ${PROJECT_PATH}/Toolchain
     echo '>>> Building Project using command: ${MAKE_COMMAND}'
-    ${MAKE_COMMAND} # Esto ejecutó make -C /root TEST=mm exitosamente según los logs.
+    ${MAKE_COMMAND}
     echo '>>> Build finished inside Docker.'
-
-    exit 0 # <-- FUERZA la salida con código 0 si todo lo anterior (bajo set -e) tuvo éxito.
-    # ------------------------------------------------
+    exit 0
 "
 # Limpia la terminal del host (opcional)
 clear

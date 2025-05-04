@@ -2,64 +2,54 @@ name: Kernel CI Build and Test
 
 on:
   push:
-    branches: [ main, master ] 
+    branches: [ main, master ]
   pull_request:
-    branches: [ main, master ] 
-  workflow_dispatch: 
+    branches: [ main, master ]
+  workflow_dispatch:
 
 jobs:
   build-and-test:
-    runs-on: ubuntu-latest 
+    runs-on: ubuntu-latest
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4 
+      uses: actions/checkout@v4
 
     - name: Make scripts executable
-      # Asegúrate de que tu script de build (SO_BUILD.sh)
-      # y run.sh tengan permisos de ejecución.
       run: |
-        
-        chmod +x ./SO_BUILD.sh 
+        chmod +x ./SO_BUILD.sh
         chmod +x ./run.sh
 
     - name: Build kernel with MM test
-      # Ejecuta tu script de build dentro de Docker
-      # Usamos --no-run para que el script NO ejecute run.sh automáticamente al final.
-      # Asegúrate de que tu script acepte --test-mm y --no-run.
-      run: ./SO_BUILD.sh --test-mm --no-run
+      run: |
+        echo "Running build script..."
+        ./SO_BUILD.sh --test-mm --no-run || {
+          echo "::error:: Build script failed. Check logs for details."
+          exit 1
+        }
+        echo "Build completed successfully."
 
     - name: Run kernel in QEMU and capture output
-      # Ejecuta el kernel compilado en QEMU usando tu script run.sh
-      # Captura toda la salida (stdout y stderr) a un archivo.
-      # Asegúrate de que run.sh lance QEMU y tu kernel.bin
       run: |
         echo "Running kernel in QEMU..."
-        # Ejecuta run.sh y redirige salida a un log
-        # Timeout de 60 segundos por si el test cuelga en lugar de hacer _hlt()
         timeout 60s ./run.sh > qemu_output.log 2>&1 || true
         echo "QEMU execution finished (check log for details)."
 
-
     - name: Check memory test results
-      # Analiza la salida capturada para determinar si el test pasó o falló.
-      # Esto se basa en los mensajes exactos que imprime tu kernel.
       run: |
         echo "--- QEMU Output Log ---"
-        cat qemu_output.log # Muestra el log completo en la salida del job
+        cat qemu_output.log
         echo "-----------------------"
 
         if grep -q "--- Test del Memory Manager: FAILED ----" qemu_output.log; then
           echo "::error:: Detected memory test failure message in QEMU output."
-          exit 1 # Falla el job de CI si el test falló
-
+          exit 1
         elif grep -q "--- Test del Memory Manager: PASSED ----" qemu_output.log; then
           echo "::notice:: Detected memory test success message in QEMU output."
-          exit 0 # El job de CI tiene éxito si el test pasó
-
+          exit 0
         else
           echo "::warning:: Could not find explicit PASS or FAIL message for Memory Test in QEMU output."
           echo "::warning:: Test outcome is indeterminate or kernel did not reach test conclusion messages."
           echo "::error:: Memory test outcome indeterminate."
-          exit 1 # Falla el job si no se puede determinar el resultado
+          exit 1
         fi
