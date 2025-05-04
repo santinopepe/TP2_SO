@@ -3,17 +3,20 @@
 #include <stdint.h>
 #include <lib.h> 
 
+#define MIN_ORDER 4 // 16 bytes
+#define MAX_BLOCKS 64 // 2^6 = 64 blocks
 
 typedef struct MemoryBlock{
     uint8_t state; // 0 = free, 1 = allocated
-    struct MemoryBlock *next; //Puntero al proximo bloque
-    struct MemoryBlock *prev; //Puntero al bloque anterior
-    uint8_t orden; //Orden del bloque
+    MemoryBlock *next; //Puntero al proximo bloque
+    MemoryBlock *prev; //Puntero al bloque anterior
+    uint8_t order; //Orden del bloque
 } MemoryBlock;
 
 typedef struct MemoryManagerCDT {
     MemoryInfoADT  memoryInfo;
-    struct MemoryBlock * memoryBlockMap; //ver el tema del maximo de bloques
+    MemoryBlock * memoryBlockMap[MAX_BLOCKS]; //ver el tema del maximo de bloques
+    uint8_t maxExp; //Maximo exponente de la lista de bloques
 } MemoryManagerCDT; 
  
 
@@ -34,11 +37,8 @@ MemoryManagerADT createMemoryManager(void * startMem, uint64_t totalSize){
     memoryManager->memoryBlockMap->state = FREE; 
     memoryManager->memoryBlockMap->next = NULL; 
     memoryManager->memoryBlockMap->prev = NULL; 
-    memoryManager->memoryBlockMap->orden = 0; 
-
-    
-
-    
+    memoryManager->memoryBlockMap->order = 0; 
+  
 }
 
 void * malloc(const size_t memoryToAllocate){
@@ -47,7 +47,9 @@ void * malloc(const size_t memoryToAllocate){
 
     MemoryManagerADT memoryManager = getMemoryManager();
 
-    
+    uint8_t idx = log(memoryToAllocate - sizeof(MemoryBlock), 2);
+
+
 }
 
 void free(void * memoryToFree); 
@@ -58,6 +60,44 @@ void * merge(void *allocatedMemory){
 
 }
 
-void * split(void *allocatedMemory, uint8_t idx){
+void * split(MemoryManagerADT memoryManager, uint8_t idx){
+    MemoryBlock *block = memoryManager->memoryBlockMap[idx];
+    removeMemoryBlock(memoryManager->memoryBlockMap, block);
+
+    MemoryBlock *buddyBlock = (MemoryBlock *) ((void *) block + (1L << idx));
     
+    createMemoryBlock((void *) buddyBlock, idx, memoryManager->memoryBlockMap[idx - 1]);  
+
+    createMemoryBlock((void *) buddyBlock, idx, memoryManager->memoryBlockMap[idx - 1]);
+	memoryManager->memoryBlockMap[idx - 1] = createMemoryBlock((void *) block, idx, buddyBlock);
+
+	MemoryInfoCDT *memoryInfo = &(memoryManager->memoryInfo);
+	memoryInfo->freePages++;
+	memoryInfo->totalPages++;
+}
+
+void * removeMemoryBlock(MemoryBlock **memoryBlockMap, MemoryBlock *block){
+    if(block->prev != NULL){
+        block->prev->next = block->next;
+    }
+    else{
+        memoryBlockMap[block->order-1] = block->next;
+    }
+    if(block->next != NULL){
+        block->next->prev = block->prev;
+    }
+    return block->next;
+}
+
+void * createMemoryBlock(void *memoryToAllocate, uint8_t order, MemoryBlock *nextBlock){
+    MemoryBlock *block = (MemoryBlock *)memoryToAllocate;
+    block->state = FREE;
+    block->prev = NULL;
+    block->order = order;
+    block->next = nextBlock;
+    if(nextBlock != NULL){
+        nextBlock->prev = block;
+    }   
+    return block;
+
 }
