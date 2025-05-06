@@ -78,5 +78,14 @@ void saveRegisters();
  * @brief  Detiene la ejecucion del programa hasta que se produzca una interrupcion
  */
 void _hlt();
+
+/**
+ * @brief  Funcion de logaritmo en base 'base' de 'n'
+ * @param  n: Numero a calcular el logaritmo
+ * @param  base: Base del logaritmo
+ * @return Logaritmo de 'n' en base 'base'
+ */
+unsigned int log(uint64_t n, int base);
+
 #endif
 

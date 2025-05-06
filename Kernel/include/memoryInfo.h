@@ -1,6 +1,9 @@
 #ifndef MEMORY_INFO_H
 #define MEMORY_INFO_H
 
+#include <stdint.h>
+
+
 typedef struct MemoryInfoCDT{
     uint64_t totalMemory;
     uint64_t freeMemory;

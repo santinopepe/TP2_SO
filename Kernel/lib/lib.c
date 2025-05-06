@@ -51,7 +51,7 @@ void * memcpy(void * destination, const void * source, uint64_t length)
 	return destination;
 }
 
-static unsigned int log(uint64_t n, int base) {
+unsigned int log(uint64_t n, int base) {
     unsigned int count = 1;
     while (n /= base)
         count++;
@@ -87,6 +87,23 @@ int itoa(uint64_t n, char* buffer, int base)
     }
     buffer[i] = '\0'; 
     return len;
+}
+
+void strcpy(char dest[], const char source[])
+{
+    int i = 0;
+    while (1)
+    {
+        dest[i] = source[i];
+
+        if (dest[i] == '\0')
+        {
+            break;
+        }
+
+        i++;
+    } 
+	return; 
 }
 
 

@@ -10,9 +10,6 @@
 
 static void *firstAdress; 
 
-static MemoryManagerADT getMemoryManagerInternal() {
-    return (MemoryManagerADT) firstAdress;
-}
 
 typedef struct MemoryManagerCDT {
     uint8_t *bitmap;
@@ -20,6 +17,9 @@ typedef struct MemoryManagerCDT {
     MemoryInfoADT memoryInfo; // Puntero a la estructura de información
 } MemoryManagerCDT;
 
+static MemoryManagerADT getMemoryManagerInternal() {
+    return (MemoryManagerADT) firstAdress;
+}
 
 
 MemoryManagerADT createMemoryManager(void * startMem, uint64_t totalSize) {
@@ -54,7 +54,7 @@ MemoryManagerADT createMemoryManager(void * startMem, uint64_t totalSize) {
     memoryManager->memoryInfo->totalPages = numPages;
     memoryManager->memoryInfo->pageSize = PAGE_SIZE;
     memoryManager->memoryInfo->totalMemory = totalSize; 
-
+    strcpy(memoryManager->memoryInfo->memoryType, "bitmap"); 
     memoryManager->bitmap = (uint8_t *)((uintptr_t)memoryManager->memoryInfo + sizeof(MemoryInfoCDT));
 
     
