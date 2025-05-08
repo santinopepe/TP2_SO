@@ -168,7 +168,7 @@ static void split_block(MemoryManagerADT memoryManager, MemoryBlock *block_to_sp
     buddyBlock->prev = NULL;
 }
 
-MemoryManagerADT createMemoryManager(void * startMem, uint64_t totalSize){
+void createMemoryManager(void * startMem, uint64_t totalSize){
     if (totalSize < sizeof(MemoryManagerCDT) + sizeof(MemoryInfoCDT) + (1ULL << MIN_ORDER)) {
         return NULL;
     }
@@ -200,7 +200,6 @@ MemoryManagerADT createMemoryManager(void * startMem, uint64_t totalSize){
     memoryManager->memoryInfo->totalMemory = totalSize;
     memoryManager->memoryInfo->freeMemory = (1 << memoryManager->maxExp);
 
-    return memoryManager;
 }
 
 void * malloc(const size_t memoryToAllocate){

@@ -2,6 +2,7 @@
   "files.associations": {
     "string.h": "c",
     "memoryinfo.h": "c",
-    "stdint.h": "c"
+    "stdint.h": "c",
+    "process.h": "c"
   }
 }
