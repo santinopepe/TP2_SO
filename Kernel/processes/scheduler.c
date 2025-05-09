@@ -5,8 +5,9 @@
 #include <lib.h>
 
 #define MAX_PROCESOS 1000
+#define STACK_SIZE 0x1000 //4kb
 
-static void * Scheduler;  
+static void * SchedulerPointer = NULL;  
 
 typedef enum { BLOCKED = 0,
     READY,
@@ -48,7 +49,7 @@ typedef struct ProcessData{ //datos del proceso para hacer el ps
 
 
 static SchedulerADT getSchedulerADT(){
-    return Scheduler; 
+    return SchedulerPointer; 
 }
 
 
@@ -58,7 +59,7 @@ SchedulerADT createScheduler(){
         return NULL;
     }
 
-    Scheduler = scheduler;
+    SchedulerPointer = scheduler;
 
     scheduler->processCount = 0;
     scheduler->first = NULL;
@@ -126,18 +127,28 @@ void setStatus(uint16_t pid, ProcessStatus status){
     scheduler->process[pid].quantum = 0;
 
     scheduler->processCount++;
-      return pid;
+    return pid;
 }
 
 void yield(){ //funcion para renuciar al cpu, para ceder su espacio a otro proceso, se usa en el scheduler para cambiar de proceso, se usa en el dispatcher
 
 }
 
-uint16_t createProcess(){ //devuelve el pid del proceso creado o -1 si no se pudo crear el proceso o -2 si no hay espacio en la tabla de procesos
+
+//Aca tmb habria que hacer lo de crear un stack falso, (el burro de arranque)
+// SS con 0x0
+// RSP con ???
+// RFLAGS con 0x202
+// CS con 0x8
+// RIP ??? ACA seria la primera instruccion a ejecutar
+// Los parametros de la funcion a ejecutar
+
+uint16_t createProcess(void * entry_point, void * argv){ //devuelve el pid del proceso creado o -1 si no se pudo crear el proceso o -2 si no hay espacio en la tabla de procesos
     SchedulerADT scheduler = getSchedulerADT(); 
     if(scheduler == NULL){
         return -1; 
     }
+
     if(scheduler->processCount >= MAX_PROCESOS){
         return -2; //excedido de procesos
     }
@@ -147,12 +158,46 @@ uint16_t createProcess(){ //devuelve el pid del proceso creado o -1 si no se pud
     scheduler->process[pid].rsp = NULL;
     scheduler->process[pid].priority = 0;
     scheduler->process[pid].quantum = 0;
-    scheduler->process[scheduler->processCount].foreground = 0;
-    scheduler->process[scheduler->processCount].stack = malloc(0x1000); //???? no se 
-    scheduler->process[scheduler->processCount].basePointer = malloc(0x1000); //???? si ta bien
+    scheduler->process[pid].foreground = 0; //Pq aca usas scheduler->processCount en vez de pid?
+    scheduler->process[pid].stack = malloc(STACK_SIZE); //Esto es la base del stack? Pq tenemos esto y RSP 
+    scheduler->process[pid].basePointer = malloc(STACK_SIZE); //O esto es la base del stack
+    scheduler->processCount++;
+
+    if(scheduler->process[pid].stack == NULL || scheduler->process[pid].basePointer == NULL){ //si no se pudo crear el stack o el basePointer
+        return -1; //no se pudo crear el proceso
+    }
+
+    scheduler->process[pid].rsp = scheduler->process[pid].stack + STACK_SIZE; //esto es el stack, el rsp apunta al final del stack
+    
+
+    //Creacion de Stack falso (El burro de arranque)
+    uint64_t *stack = (uint64_t *)scheduler->process[pid].rsp;
+
+    *--stack = 0x0;              // SS
+    *--stack = (uint64_t)stack;  // RSP
+    *--stack = 0x202;            // RFLAGS
+    *--stack = 0x8;              // CS
+    *--stack = (uint64_t)entry_point; // RIP
+
+    *--stack = (uint64_t)argv;    // RDI
+    *--stack = 0;                // RSI
+    *--stack = 0;                // RDX
+    *--stack = 0;                // RCX
+    *--stack = 0;                // R8
+    *--stack = 0;                // R9
+    *--stack = 0;                // RAX
+    *--stack = 0;                // RBX
+    *--stack = 0;                // RBP
+    *--stack = 0;                // R12
+    *--stack = 0;                // R13
+    *--stack = 0;                // R14
+    *--stack = 0;                // R15
+
+    scheduler->process[pid].rsp = (void *)stack;
 
     scheduler->processCount++;
-    return pid;
+
+    return pid; 
 }  
 
 
@@ -165,8 +210,33 @@ uint16_t getPid(){
    return scheduler->currentPID;
 }
 
+
+//ESTO puede andar pero tenemos que tener cuidado con el tema de procesos bloqueados, pq si 
+// bloqueamos el proceso y lo sacamos de la lista de listos, no se puede usar esta funcion
+// pero si no lo sacamos seteamos el currentpid al siguiente y despues lo sacamos de la lista de listos funca.
 void processSwitch(){
+
+    SchedulerADT scheduler = getSchedulerADT(); 
+    if(scheduler == NULL || scheduler->first == NULL){
+        return; 
+    }
     
+    uint8_t pid = scheduler->currentPID;
+    scheduler->process[pid].status = READY; //ESTO puede que este mal, solo podemos usar esta funcion si el proceso esta en running, si se bloquea no se puede usar
+
+    ReadyList * findNextProcess = scheduler->first; 
+   
+    while(findNextProcess != NULL){ 
+        if(pid == findNextProcess->PID && findNextProcess->next != NULL){ 
+            scheduler->currentPID = findNextProcess->next->PID; 
+            scheduler->process[findNextProcess->PID].status = RUNNING; //cambia el estado del proceso a running
+            return; 
+        }
+    }
+
+    //Creo que esto no es roundRobing pero por ahora lo dejo asi
+    scheduler->currentPID = scheduler->first->PID; //si no hay siguiente, vuelve al primero
+
 }  
 
 ProcessData *ps(){ //lo ideal aca seria devolver un array con la info de cada proceso para luego imprimirlo haciendo el llamado en userland
