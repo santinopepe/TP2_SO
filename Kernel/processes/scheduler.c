@@ -69,6 +69,8 @@ SchedulerADT createScheduler(){
         scheduler->process[i].priority = 0;
         scheduler->process[i].quantum = 0;
         scheduler->process[i].foreground = 0; //0 si es background, 1 si es foreground
+        scheduler->process[i].stack = NULL; 
+        scheduler->process[i].basePointer = NULL; 
     }
     return scheduler;
 }
@@ -89,6 +91,7 @@ int killProcess(uint16_t pid){ //devuelve 0 si pudo matar el proceso, -1 si no e
     scheduler->process[pid].foreground = 0;
     scheduler->process[pid].stack = NULL; //libera la memoria del stack
     scheduler->process[pid].basePointer = NULL; //libera la memoria del basePointer
+
 
     return 0; 
 
@@ -112,22 +115,10 @@ void waitForChildren(){ //devuelve 0 si pudo esperar a los hijos, -1 si no exist
 
 void setStatus(uint16_t pid, ProcessStatus status){ 
     SchedulerADT scheduler = getSchedulerADT(); 
-    scheduler->process[pid].status = status; //cambia el estado del proceso al que
     if(scheduler == NULL){
         return -1; 
     }
-    if(scheduler->processCount >= MAX_PROCESOS){
-        return -2; //excedido de procesos
-    }
-
-    uint8_t pid = scheduler->processCount;
-    scheduler->process[pid].status = READY;
-    scheduler->process[pid].rsp = NULL;
-    scheduler->process[pid].priority = 0;
-    scheduler->process[pid].quantum = 0;
-
-    scheduler->processCount++;
-    return pid;
+    scheduler->process[pid].status = status; //cambia el estado del proceso al que   
 }
 
 void yield(){ //funcion para renuciar al cpu, para ceder su espacio a otro proceso, se usa en el scheduler para cambiar de proceso, se usa en el dispatcher
@@ -153,14 +144,23 @@ uint16_t createProcess(void * entry_point, void * argv){ //devuelve el pid del p
         return -2; //excedido de procesos
     }
 
-    uint8_t pid = scheduler->processCount;
+
+    //Buscamos el primer proceso muerto para usar su pid
+    int i = 0; 
+    while(scheduler->process[i].status != DEAD){ 
+        i++;
+    }
+
+    uint8_t pid = i; 
     scheduler->process[pid].status = READY;
     scheduler->process[pid].rsp = NULL;
     scheduler->process[pid].priority = 0;
     scheduler->process[pid].quantum = 0;
     scheduler->process[pid].foreground = 0; //Pq aca usas scheduler->processCount en vez de pid?
+
+    //PROBABLEMETE CAMBIEMOS    
     scheduler->process[pid].stack = malloc(STACK_SIZE); //Esto es la base del stack? Pq tenemos esto y RSP 
-    scheduler->process[pid].basePointer = malloc(STACK_SIZE); //O esto es la base del stack
+    scheduler->process[pid].basePointer = scheduler->process[pid].stack ; //O esto es la base del stack
     scheduler->processCount++;
 
     if(scheduler->process[pid].stack == NULL || scheduler->process[pid].basePointer == NULL){ //si no se pudo crear el stack o el basePointer
@@ -173,7 +173,8 @@ uint16_t createProcess(void * entry_point, void * argv){ //devuelve el pid del p
     //Creacion de Stack falso (El burro de arranque)
     uint64_t *stack = (uint64_t *)scheduler->process[pid].rsp;
 
-    *--stack = 0x0;              // SS
+
+    *--stack = 0x0;              // SS 
     *--stack = (uint64_t)stack;  // RSP
     *--stack = 0x202;            // RFLAGS
     *--stack = 0x8;              // CS
@@ -194,8 +195,28 @@ uint16_t createProcess(void * entry_point, void * argv){ //devuelve el pid del p
     *--stack = 0;                // R15
 
     scheduler->process[pid].rsp = (void *)stack;
-
     scheduler->processCount++;
+
+    //Agregamos el proceso a la lista de listos
+    ReadyList * newProcess = malloc(sizeof(ReadyList)); //creamos el nuevo proceso en la lista de listos
+    if(newProcess == NULL){
+        return -1; //no se pudo crear el proceso
+    }
+    newProcess->PID = pid; 
+    newProcess->next = NULL; 
+    newProcess->prev = NULL; 
+    
+    if(scheduler->first == NULL){
+        scheduler->first = newProcess;
+    }
+    else{ 
+        ReadyList * lastProcess = scheduler->first; 
+        while(lastProcess->next != NULL){
+            lastProcess = lastProcess->next;
+        }
+        lastProcess->next = newProcess; 
+        newProcess->prev = lastProcess; 
+    }
 
     return pid; 
 }  
@@ -203,7 +224,6 @@ uint16_t createProcess(void * entry_point, void * argv){ //devuelve el pid del p
 
 uint16_t getPid(){
    SchedulerADT scheduler = getSchedulerADT();
- 
    if(scheduler == NULL){
         return -1; 
    }  
@@ -248,6 +268,7 @@ ProcessData *ps(){ //lo ideal aca seria devolver un array con la info de cada pr
     if(processData == NULL){
         return NULL; 
     }
+
     for(int i = 0, j=0; i < scheduler->processCount; i++){ //el i recorre el array de procesos y el j recorre el array de procesosData, si el proceso no es muerto se copia en el array de procesosData
         if(scheduler->process[i].status != DEAD){
             processData[j].pid = i;
