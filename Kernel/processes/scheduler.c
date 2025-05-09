@@ -31,6 +31,7 @@ typedef struct SchedulerCDT{
     Process process[MAX_PROCESOS]; //array de procesos, cada posicion es el pid del proceso
     uint8_t processCount; //cantidad de procesos en el array
     ReadyList * first; 
+    ReadyList * tail; //capaz lo usamos para agregar procesos al final de la lista
     uint8_t currentPID; 
 }SchedulerCDT;
 
@@ -48,6 +49,7 @@ static SchedulerADT getSchedulerADT(){
     return SchedulerPointer; 
 }
 
+static void removeFromList(SchedulerADT scheduler, uint16_t pid); //prototipo de la funcion removeFromList
 
 SchedulerADT createScheduler(){
     SchedulerADT scheduler = malloc(sizeof(SchedulerCDT));
@@ -59,6 +61,7 @@ SchedulerADT createScheduler(){
 
     scheduler->processCount = 0;
     scheduler->first = NULL;
+    scheduler->tail = NULL;
     for(int i = 0; i < MAX_PROCESOS; i++){
         scheduler->process[i].status = DEAD;
         scheduler->process[i].rsp = NULL;
@@ -76,9 +79,12 @@ int killProcess(uint16_t pid){ //devuelve 0 si pudo matar el proceso, -1 si no e
     if(scheduler == NULL ){
         return -2; 
     }
-    if(scheduler->process[pid].status != DEAD){
+    if(scheduler->process[pid].status == DEAD){
         return -1; 
+    } else if(scheduler->process[pid].status == RUNNING || scheduler->process[pid].status == READY){
+        removeFromList(scheduler, pid); 
     }
+    
 
     scheduler->process[pid].status = DEAD;
     scheduler->process[pid].rsp = NULL;
@@ -88,6 +94,7 @@ int killProcess(uint16_t pid){ //devuelve 0 si pudo matar el proceso, -1 si no e
     scheduler->process[pid].stack = NULL; //libera la memoria del stack
     scheduler->process[pid].basePointer = NULL; //libera la memoria del basePointer
 
+    scheduler->processCount--; 
 
     return 0; 
 
@@ -108,6 +115,7 @@ int waitForChildren(){ //devuelve 0 si pudo esperar a los hijos, -1 si no existe
         return -1; 
     }
     scheduler->process[scheduler->currentPID].status = BLOCKED; //bloqueo el proceso actual para esperar a los hijos
+
     return 0; 
 }
 
@@ -121,7 +129,12 @@ int setStatus(uint16_t pid, ProcessStatus status){
 }
 
 void yield(){ //funcion para renuciar al cpu, para ceder su espacio a otro proceso, se usa en el scheduler para cambiar de proceso, se usa en el dispatcher
-
+    SchedulerADT scheduler = getSchedulerADT(); 
+    if(scheduler == NULL){
+        return; 
+    }
+    scheduler->process[scheduler->currentPID].quantum = 0; 
+    callTimerTick();
 }
 
 
@@ -238,6 +251,7 @@ uint16_t getPid(){
 // ESTO puede andar pero tenemos que tener cuidado con el tema de procesos bloqueados, pq si 
 // bloqueamos el proceso y lo sacamos de la lista de listos, no se puede usar esta funcion
 // pero si no lo sacamos seteamos el currentpid al siguiente y despues lo sacamos de la lista de listos funca.
+//Pasa a ser el setter de running a ready
 void processSwitch(){
 
     SchedulerADT scheduler = getSchedulerADT(); 
@@ -246,7 +260,7 @@ void processSwitch(){
     }
     
     uint8_t pid = scheduler->currentPID;
-    scheduler->process[pid].status = READY; //ESTO puede que este mal, solo podemos usar esta funcion si el proceso esta en running, si se bloquea no se puede usar
+    scheduler->process[pid].status = READY; //ESTO puede que este mal, solo podemos usar esta funcion si el proceso esta en running, si se bloquea no se puede usar    
 
     ReadyList * findNextProcess = scheduler->first; 
    
@@ -254,6 +268,10 @@ void processSwitch(){
         if(pid == findNextProcess->PID && findNextProcess->next != NULL){ 
             scheduler->currentPID = findNextProcess->next->PID; 
             scheduler->process[findNextProcess->PID].status = RUNNING; //cambia el estado del proceso a running
+            removeFromList(scheduler, pid); //saca el proceso de la lista de listos
+            ReadyList *aux = scheduler->tail;
+            scheduler->tail = findNextProcess;
+            aux->next = scheduler->tail;
             return; 
         }
     }
@@ -263,7 +281,86 @@ void processSwitch(){
 
 }  
 
-ProcessData *ps(){ //lo ideal aca seria devolver un array con la info de cada proceso para luego imprimirlo haciendo el llamado en userland
+void blockProcess(){
+    SchedulerADT scheduler = getSchedulerADT();
+    if(scheduler==NULL){
+        return; 
+    }
+    uint16_t pid = scheduler->currentPID;
+    
+
+    if(scheduler->process[scheduler->currentPID].status == RUNNING){ 
+        scheduler->process[scheduler->currentPID].status = BLOCKED; 
+        processSwitch();
+        removeFromList(scheduler, pid);
+        //si queremos hacer una lista de bloqueados, aca tendriamos que 
+        //agregar el proceso a la lista de bloqueados
+    }
+       
+}
+
+static void removeFromList(SchedulerADT scheduler, uint16_t pid){
+
+    if(scheduler == NULL){
+        return; 
+    }
+    ReadyList * findProcess = scheduler->first;
+    while( findProcess->next != NULL){
+        if(findProcess->PID == pid){
+            if(findProcess->prev!=NULL){
+                findProcess->next->prev=findProcess->prev;
+            }
+            else{
+                findProcess->next->prev=NULL; 
+                scheduler->first = findProcess->next; // si es el primer proceso de la lista 
+            }
+            if(findProcess->next!=NULL){
+                findProcess->prev->next=findProcess->next;
+            }else{
+                findProcess->prev->next=NULL;
+                scheduler->tail = findProcess->prev; //si es el ultimo proceso de la lista
+                
+            }
+
+            free(findProcess);
+            break;
+        }
+        findProcess = findProcess->next;
+    }
+}
+
+/*
+static uint8_t findProcess(uint16_t pid, SchedulerADT scheduler){
+    if(scheduler==NULL){
+        return NULL;
+    }
+    ReadyList *findProcess = scheduler->first;
+    while( findProcess->PID!=pid && findProcess->next != NULL){
+        findProcess = findProcess->next;
+    }
+    
+    return findProcess->PID;
+}*/
+
+void unblockProcess(uint16_t pid){
+    SchedulerADT scheduler = getSchedulerADT();
+    if(scheduler==NULL){
+        return; 
+    }
+    
+    if(scheduler->process[pid].status == BLOCKED){
+        scheduler->process[pid].status = READY; 
+        scheduler->process[pid].quantum = 0;
+        //En este caso se agregaria el proceso desbloqueado al principio de la lista de procesos ready
+        ReadyList * newProcess = malloc(sizeof(ReadyList));
+        newProcess->PID = pid;
+        newProcess->prev = NULL; 
+        newProcess->next = scheduler->first;
+        scheduler->first = newProcess; 
+    }
+}
+
+ProcessData *ps(){ //lo ideal aca seria devolver un array con la info de cada p{}roceso para luego imprimirlo haciendo el llamado en userland
     SchedulerADT scheduler = getSchedulerADT(); 
     if(scheduler == NULL){
         return NULL; 
@@ -286,3 +383,4 @@ ProcessData *ps(){ //lo ideal aca seria devolver un array con la info de cada pr
 
     return processData;
 }
+

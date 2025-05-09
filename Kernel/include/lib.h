@@ -87,5 +87,12 @@ void _hlt();
  */
 unsigned int log(uint64_t n, int base);
 
+/**
+* @brief  Funcion para llamar a la funcion de interrupcion de timerTick
+* @note   Se usa para cambiar de proceso
+* @return void
+*/
+void callTimerTick();
+
 #endif
 

@@ -22,3 +22,7 @@ void yield();
 int setStatus(uint16_t pid, ProcessStatus status);
 
 SchedulerADT createScheduler();
+
+void unblockProcess(uint16_t pid);
+
+void blockProcess();
