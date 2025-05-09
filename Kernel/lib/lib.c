@@ -89,22 +89,7 @@ int itoa(uint64_t n, char* buffer, int base)
     return len;
 }
 
-void strcpy(char dest[], const char source[])
-{
-    int i = 0;
-    while (1)
-    {
-        dest[i] = source[i];
 
-        if (dest[i] == '\0')
-        {
-            break;
-        }
-
-        i++;
-    } 
-	return; 
-}
 
 
 int strtoi(char* s, char ** end) {

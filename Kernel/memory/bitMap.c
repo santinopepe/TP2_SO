@@ -1,7 +1,8 @@
 #include <MemoryManager.h>
 #include <memoryInfo.h> 
 #include <stdint.h>
-#include <lib.h> 
+#include <lib.h>
+
 
 #define PAGE_SIZE 64
 #define USED 1
@@ -21,6 +22,24 @@ static MemoryManagerADT getMemoryManagerInternal() {
     return (MemoryManagerADT) firstAdress;
 }
 
+
+
+void strcpy(char dest[], const char source[])
+{
+    int i = 0;
+    while (1)
+    {
+        dest[i] = source[i];
+
+        if (dest[i] == '\0')
+        {
+            break;
+        }
+
+        i++;
+    } 
+	return; 
+}
 
 MemoryManagerADT createMemoryManager(void * startMem, uint64_t totalSize) {
     if (totalSize < sizeof(MemoryManagerCDT) + sizeof(MemoryInfoCDT)) {

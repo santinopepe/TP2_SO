@@ -9,11 +9,7 @@
 
 static void * SchedulerPointer = NULL;  
 
-typedef enum { BLOCKED = 0,
-    READY,
-    RUNNING,
-    ZOMBIE,
-    DEAD } ProcessStatus;
+
 
 typedef struct process{
     ProcessStatus status;
@@ -97,28 +93,31 @@ int killProcess(uint16_t pid){ //devuelve 0 si pudo matar el proceso, -1 si no e
 
 }
 
-void setPriority(uint16_t pid, uint8_t priority){ //devuelve 0 si pudo cambiar la prioridad, -1 si no existe el proceso o -2 si no se puede cambiar la prioridad
+int setPriority(uint16_t pid, uint8_t priority){ //devuelve 0 si pudo cambiar la prioridad, -1 si no existe el proceso o -2 si no se puede cambiar la prioridad
     SchedulerADT scheduler = getSchedulerADT();
     if(scheduler == NULL){
         return -1; 
     }
     scheduler->process[pid].priority = priority; //cambia la prioridad del proceso al que se le pasa el pid
+    return 0; 
 }
 
-void waitForChildren(){ //devuelve 0 si pudo esperar a los hijos, -1 si no existe el proceso o -2 si no se puede esperar a=los hi && (priority > 3 && priority < 0)jos
+int waitForChildren(){ //devuelve 0 si pudo esperar a los hijos, -1 si no existe el proceso o -2 si no se puede esperar a=los hi && (priority > 3 && priority < 0)jos
     SchedulerADT scheduler = getSchedulerADT(); 
     if(scheduler == NULL){
         return -1; 
     }
     scheduler->process[scheduler->currentPID].status = BLOCKED; //bloqueo el proceso actual para esperar a los hijos
+    return 0; 
 }
 
-void setStatus(uint16_t pid, ProcessStatus status){ 
+int setStatus(uint16_t pid, ProcessStatus status){ 
     SchedulerADT scheduler = getSchedulerADT(); 
     if(scheduler == NULL){
         return -1; 
     }
     scheduler->process[pid].status = status; //cambia el estado del proceso al que   
+    return 0;
 }
 
 void yield(){ //funcion para renuciar al cpu, para ceder su espacio a otro proceso, se usa en el scheduler para cambiar de proceso, se usa en el dispatcher
@@ -172,10 +171,15 @@ uint16_t createProcess(void * entry_point, void * argv){ //devuelve el pid del p
 
     //Creacion de Stack falso (El burro de arranque)
     uint64_t *stack = (uint64_t *)scheduler->process[pid].rsp;
-
+    if(stack == NULL){
+        return -1; //no se pudo crear el stack
+    }
 
     *--stack = 0x0;              // SS 
-    *--stack = (uint64_t)stack;  // RSP
+
+    uint64_t* temp = --stack;
+    *temp = (uint64_t)stack;     // RSP
+    
     *--stack = 0x202;            // RFLAGS
     *--stack = 0x8;              // CS
     *--stack = (uint64_t)entry_point; // RIP
@@ -231,7 +235,7 @@ uint16_t getPid(){
 }
 
 
-//ESTO puede andar pero tenemos que tener cuidado con el tema de procesos bloqueados, pq si 
+// ESTO puede andar pero tenemos que tener cuidado con el tema de procesos bloqueados, pq si 
 // bloqueamos el proceso y lo sacamos de la lista de listos, no se puede usar esta funcion
 // pero si no lo sacamos seteamos el currentpid al siguiente y despues lo sacamos de la lista de listos funca.
 void processSwitch(){

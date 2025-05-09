@@ -39,7 +39,23 @@ static MemoryBlock * merge_blocks(MemoryManagerADT memoryManager, MemoryBlock *b
 
 static void split_block(MemoryManagerADT memoryManager, MemoryBlock *block_to_split);
 
+//ESTO habria que cambiarlo
+void strcpy(char dest[], const char source[])
+{
+    int i = 0;
+    while (1)
+    {
+        dest[i] = source[i];
 
+        if (dest[i] == '\0')
+        {
+            break;
+        }
+
+        i++;
+    } 
+	return; 
+}
 
 static uint8_t log2_floor(uint64_t n) {
     if (n == 0){
@@ -168,7 +184,7 @@ static void split_block(MemoryManagerADT memoryManager, MemoryBlock *block_to_sp
     buddyBlock->prev = NULL;
 }
 
-void createMemoryManager(void * startMem, uint64_t totalSize){
+MemoryManagerADT createMemoryManager(void * startMem, uint64_t totalSize) {
     if (totalSize < sizeof(MemoryManagerCDT) + sizeof(MemoryInfoCDT) + (1ULL << MIN_ORDER)) {
         return NULL;
     }
@@ -199,6 +215,8 @@ void createMemoryManager(void * startMem, uint64_t totalSize){
     strcpy(memoryManager->memoryInfo->memoryType, "buddy"); 
     memoryManager->memoryInfo->totalMemory = totalSize;
     memoryManager->memoryInfo->freeMemory = (1 << memoryManager->maxExp);
+
+    return memoryManager;
 
 }
 
