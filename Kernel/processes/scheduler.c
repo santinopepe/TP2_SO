@@ -1,6 +1,6 @@
 #include <stdint.h>
 #include <scheduler.h>
-#include <process.h>
+#include "Kernel/include/process.h"
 #include <MemoryManager.h>
 #include <lib.h>
 
@@ -8,18 +8,6 @@
 #define STACK_SIZE 0x1000 //4kb
 
 static void * SchedulerPointer = NULL;  
-
-
-
-typedef struct process{
-    ProcessStatus status;
-    void *rsp;
-    uint8_t priority;
-    uint8_t quantum;
-    uint16_t foreground;
-    void *stack;
-    void *basePointer;
-}Process;
 
 typedef struct ReadyList{
     uint8_t PID; 
@@ -34,16 +22,6 @@ typedef struct SchedulerCDT{
     ReadyList * tail; //capaz lo usamos para agregar procesos al final de la lista
     uint8_t currentPID; 
 }SchedulerCDT;
-
-typedef struct ProcessData{ //datos del proceso para hacer el ps
-    char name[20]; //nombre del proceso, 20 porque pintó
-    uint16_t pid; //pid del proceso
-    uint8_t priority;
-    void *stack;
-    void *basePointer;
-    uint16_t foreground; //1 si es foreground, 0 si es background
-} ProcessData;
-
 
 static SchedulerADT getSchedulerADT(){
     return SchedulerPointer; 
@@ -109,15 +87,7 @@ int setPriority(uint16_t pid, uint8_t priority){ //devuelve 0 si pudo cambiar la
     return 0; 
 }
 
-int waitForChildren(){ //devuelve 0 si pudo esperar a los hijos, -1 si no existe el proceso o -2 si no se puede esperar a=los hi && (priority > 3 && priority < 0)jos
-    SchedulerADT scheduler = getSchedulerADT(); 
-    if(scheduler == NULL){
-        return -1; 
-    }
-    scheduler->process[scheduler->currentPID].status = BLOCKED; //bloqueo el proceso actual para esperar a los hijos
 
-    return 0; 
-}
 
 int setStatus(uint16_t pid, ProcessStatus status){ 
     SchedulerADT scheduler = getSchedulerADT(); 
@@ -281,8 +251,8 @@ void processSwitch(){
 
 }  
 
-void blockProcess(){
-    SchedulerADT scheduler = getSchedulerADT();
+void blockProcess(){ //bloquea el proceso, lo saca de la lista de listos y lo agrega a la lista de bloqueados
+    SchedulerADT scheduler = getSchedulerADT(){
     if(scheduler==NULL){
         return; 
     }
@@ -322,25 +292,20 @@ static void removeFromList(SchedulerADT scheduler, uint16_t pid){
                 
             }
 
-            free(findProcess);
+            freeProcess(findProcess);
             break;
         }
         findProcess = findProcess->next;
     }
 }
 
-/*
-static uint8_t findProcess(uint16_t pid, SchedulerADT scheduler){
-    if(scheduler==NULL){
+Process *findProcess(uint16_t pid){
+    SchedulerADT scheduler = getSchedulerADT();
+    if(scheduler == NULL){
         return NULL;
     }
-    ReadyList *findProcess = scheduler->first;
-    while( findProcess->PID!=pid && findProcess->next != NULL){
-        findProcess = findProcess->next;
-    }
-    
-    return findProcess->PID;
-}*/
+    return &scheduler->process[pid];
+}
 
 void unblockProcess(uint16_t pid){
     SchedulerADT scheduler = getSchedulerADT();

@@ -1,6 +1,5 @@
 #include <stdint.h> 
 
-
 typedef enum { BLOCKED = 0,
     READY,
     RUNNING,
@@ -8,6 +7,8 @@ typedef enum { BLOCKED = 0,
     DEAD } ProcessStatus;
 
 typedef struct SchedulerCDT * SchedulerADT; 
+
+static SchedulerADT getSchedulerADT();
 
 int killProcess(uint16_t pid); //devuelve 0 si pudo matar el proceso, -1 si no existe el proceso o -2 si no se puede matar el proceso
 
@@ -26,3 +27,5 @@ SchedulerADT createScheduler();
 void unblockProcess(uint16_t pid);
 
 void blockProcess();
+
+Process *findProcess(uint16_t pid); //devuelve el proceso con el pid pasado por parametro o NULL si no existe el proceso
