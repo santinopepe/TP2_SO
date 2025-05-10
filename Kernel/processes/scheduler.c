@@ -1,6 +1,6 @@
-#include <stdint.h>
+/*#include <stdint.h>
 #include <scheduler.h>
-#include "Kernel/include/process.h"
+#include <process.h>
 #include <MemoryManager.h>
 #include <lib.h>
 
@@ -353,3 +353,4 @@ ProcessData *ps(){ //lo ideal aca seria devolver un array con la info de cada p{
     return processData;
 }
 
+*/

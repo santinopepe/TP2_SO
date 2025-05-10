@@ -22,7 +22,7 @@ for arg in "$@"; do
   elif [[ "$arg" == "--mm="* ]]; then # <--- NUEVO: Parsear argumento --mm=
     MM_TYPE_ARG="${arg#--mm=}" # Extrae el valor después de '--mm=' y lo guarda
     echo ">>> Tipo de Administrador de Memoria especificado: ${MM_TYPE_ARG}"
-  elif [[ "$arg" == "--list" ]]; then
+  elif [[ "$arg" == "--test-list" ]]; then
     BUILD_TEST_LIST=true
   fi
 done

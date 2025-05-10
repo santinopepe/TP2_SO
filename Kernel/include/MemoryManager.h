@@ -5,7 +5,7 @@
 #include <memoryInfo.h>
 #include <stdint.h>
 
-#define HEAP_SIZE 16 * 1024 * 1024 // 16MB
+#define HEAP_SIZE 256 * 1024 * 1024 // 256MB
 #define PAGE_SIZE 64
 #define USED 1
 #define FREE 0

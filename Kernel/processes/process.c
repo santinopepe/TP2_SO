@@ -1,8 +1,8 @@
-#include "Kernel/include/process.h"
+/*#include <process.h>
 #include <stdint.h>
 #include <MemoryManager.h>
 #include <lib.h>
-#include "Kernel/include/scheduler.h"
+#include <scheduler.h>
 
 void freeProcess(Process *process){
     if(process == NULL){
@@ -28,4 +28,4 @@ int waitForChildren(uint16_t pid){ //devuelve 0 si pudo esperar a los hijos, -1 
 
 void initProcess(//Params del proceso){
 
-}
+}*/

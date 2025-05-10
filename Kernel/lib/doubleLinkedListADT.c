@@ -136,7 +136,7 @@ int removeElement(DoubleLinkedListADT list, void *data)
     Node *current = list->first;
     while (current != NULL)
     {
-        if (current->data == data)
+        if ((char *)current->data - (char *)data == 0)
         {
             if (current == list->first)
             {
