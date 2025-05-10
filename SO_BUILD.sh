@@ -6,6 +6,7 @@ IMAGE_NAME="agodio/itba-so-multi-platform:3.0"
 PROJECT_PATH="/root"
 SKIP_RUN=false
 BUILD_TEST_MM=false
+BUILD_TEST_LIST=false
 MANU=false
 MM_TYPE_ARG="" # Variable para almacenar el tipo de MM especificado en el argumento
 
@@ -21,6 +22,8 @@ for arg in "$@"; do
   elif [[ "$arg" == "--mm="* ]]; then # <--- NUEVO: Parsear argumento --mm=
     MM_TYPE_ARG="${arg#--mm=}" # Extrae el valor después de '--mm=' y lo guarda
     echo ">>> Tipo de Administrador de Memoria especificado: ${MM_TYPE_ARG}"
+  elif [[ "$arg" == "--test-list" ]]; then
+    BUILD_TEST_LIST=true
   fi
 done
 
@@ -38,6 +41,13 @@ fi
 if [ -n "$MM_TYPE_ARG" ]; then 
   MAKE_COMMAND="${MAKE_COMMAND} MM_TYPE=${MM_TYPE_ARG}"
   echo ">>> Pasando MM_TYPE=${MM_TYPE_ARG} a make..."
+fi
+
+if [ "$BUILD_TEST_LIST" = true ]; then
+  MAKE_COMMAND="${MAKE_COMMAND} TEST=list"
+  echo ">>> Construyendo kernel con TEST_LIST habilitado..."
+else
+  echo ">>> Construyendo kernel sin TEST_LIST habilitado..."
 fi
 
 # Ejecuta los comandos dentro del contenedor Docker

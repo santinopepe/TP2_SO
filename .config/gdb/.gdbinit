@@ -1,15 +1,15 @@
-target remote 192.168.1.20:1234
+target remote 192.168.0.221:1234
 add-symbol-file Kernel/kernel.elf 0x100000
 add-symbol-file Userland/0000-sampleCodeModule.elf 0x400000
 
 define src-prof
-  dashboard -layout source expressions stack variables
-  dashboard source -style height 20
+    dashboard -layout source expressions stack variables
+    dashboard source -style height 20
 end
 
 define asm-prof
-  dashboard -layout registers assembly memory stack
-  dashboard registers -style list 'rax rbx rcx rdx rsi rdi rbp rsp r8 r9 r10 r11 r12 r13 r14 r15 rip eflags cs ss ds es fs gs fs_base gs_base k_gs_base cr0 cr2 cr3 cr4 cr8 efer'
+    dashboard -layout registers assembly memory stack
+    dashboard registers -style list 'rax rbx rcx rdx rsi rdi rbp rsp r8 r9 r10 r11 r12 r13 r14 r15 rip eflags cs ss ds es fs gs fs_base gs_base k_gs_base cr0 cr2 cr3 cr4 cr8 efer'
 end
 
 python
@@ -18,11 +18,9 @@ python
 #
 # https://github.com/cyrus-and/gdb-dashboard
 
-
-
 # License ----------------------------------------------------------------------
 
-# Copyright (c) 2015-2020 Andrea Cardaci <cyrus.and@gmail.com>
+# Copyright (c) 2015-2025 Andrea Cardaci <cyrus.and@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -45,6 +43,8 @@ python
 # Imports ----------------------------------------------------------------------
 
 import ast
+import io
+import itertools
 import math
 import os
 import re
@@ -117,15 +117,20 @@ prompt, see the command `python print(gdb.prompt.prompt_help())`''',
 
 See the `prompt` attribute. This value is used as a Python format string where
 `{pid}` is expanded with the process identifier of the target program.''',
-                'default': '\[\e[1;35m\]>>>\[\e[0m\]'
+                'default': r'\[\e[1;35m\]>>>\[\e[0m\]'
             },
             'prompt_not_running': {
                 'doc': '''Define the value of `{status}` when the target program is running.
 
 See the `prompt` attribute. This value is used as a Python format string.''',
-                'default': '\[\e[1;30m\]>>>\[\e[0m\]'
+                'default': r'\[\e[90m\]>>>\[\e[0m\]'
             },
             # divider
+            'omit_divider': {
+                'doc': 'Omit the divider in external outputs when only one module is displayed.',
+                'default': False,
+                'type': bool
+            },
             'divider_fill_char_primary': {
                 'doc': 'Filler around the label for primary dividers',
                 'default': '─'
@@ -140,7 +145,7 @@ See the `prompt` attribute. This value is used as a Python format string.''',
             },
             'divider_fill_style_secondary': {
                 'doc': 'Style for `divider_fill_char_secondary`',
-                'default': '1;30'
+                'default': '90'
             },
             'divider_label_style_on_primary': {
                 'doc': 'Label style for non-empty primary dividers',
@@ -156,7 +161,7 @@ See the `prompt` attribute. This value is used as a Python format string.''',
             },
             'divider_label_style_off_secondary': {
                 'doc': 'Label style for empty secondary dividers',
-                'default': '1;30'
+                'default': '90'
             },
             'divider_label_skip': {
                 'doc': 'Gap between the aligning border and the label.',
@@ -183,7 +188,7 @@ See the `prompt` attribute. This value is used as a Python format string.''',
                 'default': '32'
             },
             'style_low': {
-                'default': '1;30'
+                'default': '90'
             },
             'style_high': {
                 'default': '1;37'
@@ -201,7 +206,7 @@ See the `prompt` attribute. This value is used as a Python format string.''',
 class Beautifier():
 
     def __init__(self, hint, tab_size=4):
-        self.tab_spaces = ' ' * tab_size
+        self.tab_spaces = ' ' * tab_size if tab_size else None
         self.active = False
         if not R.ansi or not R.syntax_highlighting:
             return
@@ -227,8 +232,9 @@ class Beautifier():
             pass
 
     def process(self, source):
-        # convert tabs anyway
-        source = source.replace('\t', self.tab_spaces)
+        # convert tabs if requested
+        if self.tab_spaces:
+            source = source.replace('\t', self.tab_spaces)
         if self.active:
             import pygments
             source = pygments.highlight(source, self.lexer, self.formatter)
@@ -335,6 +341,7 @@ def format_value(value, compact=None):
 def fetch_breakpoints(watchpoints=False, pending=False):
     # fetch breakpoints addresses
     parsed_breakpoints = dict()
+    catch_what_regex = re.compile(r'([^,]+".*")?[^,]*')
     for line in run('info breakpoints').split('\n'):
         # just keep numbered lines
         if not line or not line[0].isdigit():
@@ -350,7 +357,11 @@ def fetch_breakpoints(watchpoints=False, pending=False):
                 address = None if is_multiple or is_pending else int(fields[4], 16)
                 is_enabled = fields[3] == 'y'
                 address_info = address, is_enabled
-                parsed_breakpoints[number] = [address_info], is_pending
+                parsed_breakpoints[number] = [address_info], is_pending, ''
+            elif len(fields) >= 5 and fields[1] == 'catchpoint':
+                # only take before comma, but ignore commas in quotes
+                what = catch_what_regex.search(' '.join(fields[4:])).group(0).strip()
+                parsed_breakpoints[number] = [], False, what
             elif len(fields) >= 3 and number in parsed_breakpoints:
                 # add this address to the list of multiple locations
                 address = int(fields[2], 16)
@@ -359,7 +370,7 @@ def fetch_breakpoints(watchpoints=False, pending=False):
                 parsed_breakpoints[number][0].append(address_info)
             else:
                 # watchpoints
-                parsed_breakpoints[number] = [], False
+                parsed_breakpoints[number] = [], False, ''
         except ValueError:
             pass
     # fetch breakpoints from the API and complement with address and source
@@ -367,7 +378,10 @@ def fetch_breakpoints(watchpoints=False, pending=False):
     breakpoints = []
     # XXX in older versions gdb.breakpoints() returns None
     for gdb_breakpoint in gdb.breakpoints() or []:
-        addresses, is_pending = parsed_breakpoints[gdb_breakpoint.number]
+        # skip internal breakpoints
+        if gdb_breakpoint.number < 0:
+            continue
+        addresses, is_pending, what = parsed_breakpoints[gdb_breakpoint.number]
         is_pending = getattr(gdb_breakpoint, 'pending', is_pending)
         if not pending and is_pending:
             continue
@@ -384,6 +398,7 @@ def fetch_breakpoints(watchpoints=False, pending=False):
         breakpoint['temporary'] = gdb_breakpoint.temporary
         breakpoint['hit_count'] = gdb_breakpoint.hit_count
         breakpoint['pending'] = is_pending
+        breakpoint['what'] = what
         # add addresses and source information
         breakpoint['addresses'] = []
         for address, is_enabled in addresses:
@@ -423,7 +438,9 @@ class Dashboard(gdb.Command):
     def on_continue(self, _):
         # try to contain the GDB messages in a specified area unless the
         # dashboard is printed to a separate file (dashboard -output ...)
-        if self.is_running() and not self.output:
+        # or there are no modules to display in the main terminal
+        enabled_modules = list(filter(lambda m: not m.output and m.enabled, self.modules))
+        if self.is_running() and not self.output and len(enabled_modules) > 0:
             width, _ = Dashboard.get_term_size()
             gdb.write(Dashboard.clear_screen())
             gdb.write(divider(width, 'Output/messages', True))
@@ -525,6 +542,9 @@ class Dashboard(gdb.Command):
                     buf += Dashboard.clear_screen()
                 # show message if all the modules in this output are disabled
                 if not any(instances):
+                    # skip the main terminal
+                    if fs is gdb:
+                        continue
                     # write the error message
                     buf += divider(width, 'Warning', True)
                     buf += '\n'
@@ -532,11 +552,7 @@ class Dashboard(gdb.Command):
                         buf += 'No module to display (see `dashboard -layout`)'
                     else:
                         buf += 'No module loaded'
-                    # write the terminator only in the main terminal
                     buf += '\n'
-                    if fs is gdb:
-                        buf += divider(width, primary=True)
-                        buf += '\n'
                     fs.write(buf)
                     continue
                 # process all the modules for that output
@@ -551,10 +567,12 @@ class Dashboard(gdb.Command):
                         # allow to continue on exceptions in modules
                         stacktrace = traceback.format_exc().strip()
                         lines = [ansi(stacktrace, R.style_error)]
-                    # create the divider accordingly
-                    div = divider(width, instance.label(), True, lines)
+                    # create the divider if needed
+                    div = []
+                    if not R.omit_divider or len(instances) > 1 or fs is gdb:
+                        div = [divider(width, instance.label(), True, lines)]
                     # write the data
-                    buf += '\n'.join([div] + lines)
+                    buf += '\n'.join(div + lines)
                     # write the newline for all but last unless main terminal
                     if n != len(instances) or fs is gdb:
                         buf += '\n'
@@ -577,6 +595,8 @@ class Dashboard(gdb.Command):
 
     @staticmethod
     def start():
+        # save the instance for customization convenience
+        global dashboard
         # initialize the dashboard
         dashboard = Dashboard()
         Dashboard.set_custom_prompt(dashboard)
@@ -632,9 +652,20 @@ class Dashboard(gdb.Command):
 
     @staticmethod
     def parse_inits(python):
-        for root, dirs, files in os.walk(os.path.expanduser('~/.gdbinit.d/')):
+        # paths where the .gdbinit.d directory might be
+        search_paths = [
+            '/etc/gdb-dashboard',
+            '{}/gdb-dashboard'.format(os.getenv('XDG_CONFIG_HOME', '~/.config')),
+            '~/Library/Preferences/gdb-dashboard',
+            '~/.gdbinit.d'
+        ]
+        # expand the tilde and walk the paths
+        inits_dirs = (os.walk(os.path.expanduser(path)) for path in search_paths)
+        # process all the init files in order
+        for root, dirs, files in itertools.chain.from_iterable(inits_dirs):
             dirs.sort()
-            for init in sorted(files):
+            # skipping dotfiles
+            for init in sorted(file for file in files if not file.startswith('.')):
                 path = os.path.join(root, init)
                 _, ext = os.path.splitext(path)
                 # either load Python files or GDB
@@ -658,8 +689,19 @@ class Dashboard(gdb.Command):
 
     @staticmethod
     def create_command(name, invoke, doc, is_prefix, complete=None):
-        Class = type('', (gdb.Command,), {'invoke': invoke, '__doc__': doc})
-        Class(name, gdb.COMMAND_USER, complete or gdb.COMPLETE_NONE, is_prefix)
+        if callable(complete):
+            Class = type('', (gdb.Command,), {
+                '__doc__': doc,
+                'invoke': invoke,
+                'complete': complete
+            })
+            Class(name, gdb.COMMAND_USER, prefix=is_prefix)
+        else:
+            Class = type('', (gdb.Command,), {
+                '__doc__': doc,
+                'invoke': invoke
+            })
+            Class(name, gdb.COMMAND_USER, complete or gdb.COMPLETE_NONE, is_prefix)
 
     @staticmethod
     def err(string):
@@ -681,7 +723,7 @@ class Dashboard(gdb.Command):
         # ANSI: move the cursor to top-left corner and clear the screen
         # (optionally also clear the scrollback buffer if supported by the
         # terminal)
-        return '\x1b[H\x1b[J' + '\x1b[3J' if R.discard_scrollback else ''
+        return '\x1b[H\x1b[2J' + ('\x1b[3J' if R.discard_scrollback else '')
 
     @staticmethod
     def setup_terminal():
@@ -1150,7 +1192,10 @@ class Source(Dashboard.Module):
         self.offset = 0
 
     def label(self):
-        return 'Source'
+        label = 'Source'
+        if self.show_path and self.file_name:
+            label += ': {}'.format(self.file_name)
+        return label
 
     def lines(self, term_width, term_height, style_changed):
         # skip if the current thread is not stopped
@@ -1160,6 +1205,7 @@ class Source(Dashboard.Module):
         sal = gdb.selected_frame().find_sal()
         current_line = sal.line
         if current_line == 0:
+            self.file_name = None
             return []
         # try to lookup the source file
         candidates = [
@@ -1181,7 +1227,7 @@ class Source(Dashboard.Module):
         if style_changed or file_name != self.file_name or ts and ts > self.ts:
             try:
                 # reload the source file if changed
-                with open(file_name) as source_file:
+                with io.open(file_name, errors='replace') as source_file:
                     highlighter = Beautifier(file_name, self.tab_size)
                     self.highlighted = highlighter.active
                     source = highlighter.process(source_file.read())
@@ -1219,7 +1265,7 @@ class Source(Dashboard.Module):
             if int(number) == current_line:
                 # the current line has a different style without ANSI
                 if R.ansi:
-                    if self.highlighted:
+                    if self.highlighted and not self.highlight_line:
                         line_format = '{}' + ansi(number_format, R.style_selected_1) + '  {}'
                     else:
                         line_format = '{}' + ansi(number_format + '  {}', R.style_selected_1)
@@ -1275,6 +1321,18 @@ A value of 0 uses the whole height.''',
                 'name': 'tab_size',
                 'type': int,
                 'check': check_gt_zero
+            },
+            'path': {
+                'doc': 'Path visibility flag in the module label.',
+                'default': False,
+                'name': 'show_path',
+                'type': bool
+            },
+            'highlight-line': {
+                'doc': 'Decide whether the whole current line should be highlighted.',
+                'default': False,
+                'name': 'highlight_line',
+                'type': bool
             }
         }
 
@@ -1309,22 +1367,14 @@ The instructions constituting the current statement are marked, if available.'''
             flavor = gdb.parameter('disassembly-flavor')
         except:
             flavor = 'att'  # not always defined (see #36)
-        highlighter = Beautifier(flavor)
+        highlighter = Beautifier(flavor, tab_size=None)
         # fetch the assembly code
         line_info = None
         frame = gdb.selected_frame()  # PC is here
         height = self.height or (term_height - 1)
         try:
-            # disassemble the current block (if function information is
-            # available then try to obtain the boundaries by looking at the
-            # superblocks)
-            block = frame.block()
-            if frame.function():
-                while block and (not block.function or block.function.name != frame.function().name):
-                    block = block.superblock
-                block = block or frame.block()
-            asm_start = block.start
-            asm_end = block.end - 1
+            # disassemble the current block
+            asm_start, asm_end = self.fetch_function_boundaries()
             asm = self.fetch_asm(asm_start, asm_end, False, highlighter)
             # find the location of the PC
             pc_index = next(index for index, instr in enumerate(asm)
@@ -1408,7 +1458,7 @@ The instructions constituting the current statement are marked, if available.'''
                 indicator = ansi(indicator, R.style_selected_1)
                 opcodes = ansi(opcodes, R.style_selected_1)
                 func_info = ansi(func_info, R.style_selected_1)
-                if not highlighter.active:
+                if not highlighter.active or self.highlight_line:
                     text = ansi(text, R.style_selected_1)
             elif line_info and line_info.pc <= addr < line_info.last:
                 if not R.ansi:
@@ -1417,7 +1467,7 @@ The instructions constituting the current statement are marked, if available.'''
                 indicator = ansi(indicator, R.style_selected_2)
                 opcodes = ansi(opcodes, R.style_selected_2)
                 func_info = ansi(func_info, R.style_selected_2)
-                if not highlighter.active:
+                if not highlighter.active or self.highlight_line:
                     text = ansi(text, R.style_selected_2)
             else:
                 addr_str = ansi(addr_str, R.style_low)
@@ -1471,6 +1521,12 @@ A value of 0 uses the whole height.''',
                 'default': True,
                 'name': 'show_function',
                 'type': bool
+            },
+            'highlight-line': {
+                'doc': 'Decide whether the whole current line should be highlighted.',
+                'default': False,
+                'name': 'highlight_line',
+                'type': bool
             }
         }
 
@@ -1479,6 +1535,26 @@ A value of 0 uses the whole height.''',
             self.offset += int(arg)
         else:
             self.offset = 0
+
+    def fetch_function_boundaries(self):
+        frame = gdb.selected_frame()
+        # parse the output of the disassemble GDB command to find the function
+        # boundaries, this should handle cases in which a function spans
+        # multiple discontinuous blocks
+        disassemble = run('disassemble')
+        for block_start, block_end in re.findall(r'Address range 0x([0-9a-f]+) to 0x([0-9a-f]+):', disassemble):
+            block_start = int(block_start, 16)
+            block_end = int(block_end, 16)
+            if block_start <= frame.pc() < block_end:
+                return block_start, block_end - 1 # need to be inclusive
+        # if function information is available then try to obtain the
+        # boundaries by looking at the superblocks
+        block = frame.block()
+        if frame.function():
+            while block and (not block.function or block.function.name != frame.function().name):
+                block = block.superblock
+            block = block or frame.block()
+        return block.start, block.end - 1
 
     def fetch_asm(self, start, end_or_count, relative, highlighter):
         # fetch asm from cache or disassemble
@@ -1597,46 +1673,53 @@ Optionally list the frame arguments and locals too.'''
         # skip if the current thread is not stopped
         if not gdb.selected_thread().is_stopped():
             return []
-        # find the selected frame (i.e., the first to display)
-        selected_index = 0
+        # find the selected frame level (XXX Frame.level() is a recent addition)
+        start_level = 0
         frame = gdb.newest_frame()
         while frame:
             if frame == gdb.selected_frame():
                 break
             frame = frame.older()
-            selected_index += 1
-        # format up to "limit" frames
-        frames = []
-        number = selected_index
+            start_level += 1
+        # gather the frames
         more = False
-        while frame:
-            # the first is the selected one
-            selected = (len(frames) == 0)
-            # fetch frame info
-            style = R.style_selected_1 if selected else R.style_selected_2
-            frame_id = ansi(str(number), style)
-            info = Stack.get_pc_line(frame, style)
-            frame_lines = []
-            frame_lines.append('[{}] {}'.format(frame_id, info))
-            # add frame arguments and locals
-            variables = Variables.format_frame(
-                frame, self.show_arguments, self.show_locals, self.compact, self.align, self.sort)
-            frame_lines.extend(variables)
-            # add frame
-            frames.append(frame_lines)
-            # next
-            frame = frame.older()
-            number += 1
-            # check finished according to the limit
-            if self.limit and len(frames) == self.limit:
-                # more frames to show but limited
-                if frame:
-                    more = True
+        frames = [gdb.selected_frame()]
+        going_down = True
+        while True:
+            # stack frames limit reached
+            if len(frames) == self.limit:
+                more = True
                 break
+            # zigzag the frames starting from the selected one
+            if going_down:
+                frame = frames[-1].older()
+                if frame:
+                    frames.append(frame)
+                else:
+                    frame = frames[0].newer()
+                    if frame:
+                        frames.insert(0, frame)
+                        start_level -= 1
+                    else:
+                        break
+            else:
+                frame = frames[0].newer()
+                if frame:
+                    frames.insert(0, frame)
+                    start_level -= 1
+                else:
+                    frame = frames[-1].older()
+                    if frame:
+                        frames.append(frame)
+                    else:
+                        break
+            # switch direction
+            going_down = not going_down
         # format the output
         lines = []
-        for frame_lines in frames:
-            lines.extend(frame_lines)
+        for number, frame in enumerate(frames, start=start_level):
+            selected = frame == gdb.selected_frame()
+            lines.extend(self.get_frame_lines(number, frame, selected))
         # add the placeholder
         if more:
             lines.append('[{}]'.format(ansi('+', R.style_selected_2)))
@@ -1678,6 +1761,19 @@ Optionally list the frame arguments and locals too.'''
                 'type': bool
             }
         }
+
+    def get_frame_lines(self, number, frame, selected=False):
+        # fetch frame info
+        style = R.style_selected_1 if selected else R.style_selected_2
+        frame_id = ansi(str(number), style)
+        info = Stack.get_pc_line(frame, style)
+        frame_lines = []
+        frame_lines.append('[{}] {}'.format(frame_id, info))
+        # add frame arguments and locals
+        variables = Variables.format_frame(
+            frame, self.show_arguments, self.show_locals, self.compact, self.align, self.sort)
+        frame_lines.extend(variables)
+        return frame_lines
 
     @staticmethod
     def format_line(prefix, line):
@@ -1924,14 +2020,21 @@ class Registers(Dashboard.Module):
         # fetch registers status
         registers = []
         for name in register_list:
-            # Exclude registers with a dot '.' or parse_and_eval() will fail
+            # exclude registers with a dot '.' or parse_and_eval() will fail
             if '.' in name:
                 continue
             value = gdb.parse_and_eval('${}'.format(name))
             string_value = Registers.format_value(value)
+            # exclude unavailable registers (see #255)
+            if string_value == '<unavailable>':
+                continue
             changed = self.table and (self.table.get(name, '') != string_value)
             self.table[name] = string_value
             registers.append((name, string_value, changed))
+        # handle the empty register list
+        if not registers:
+            msg = 'No registers to show (check the "dashboard registers -style list" attribute)'
+            return [ansi(msg, R.style_error)]
         # compute lengths considering an extra space between and around the
         # entries (hence the +2 and term_width - 1)
         max_name = max(len(name) for name, _, _ in registers)
@@ -1983,7 +2086,8 @@ class Registers(Dashboard.Module):
             'list': {
                 'doc': '''String of space-separated register names to display.
 
-The empty list (default) causes to show all the available registers.''',
+The empty list (default) causes to show all the available registers. For
+architectures different from x86 setting this attribute might be mandatory.''',
                 'default': '',
                 'name': 'register_list',
             }
@@ -2009,7 +2113,7 @@ The empty list (default) causes to show all the available registers.''',
             if len(fields) != 7:
                 continue
             name, _, _, _, _, _, groups = fields
-            if not re.match('\w', name):
+            if not re.match(r'\w', name):
                 continue
             for group in groups.split(','):
                 if group in (match_groups or ('general',)):
@@ -2084,7 +2188,7 @@ class Expressions(Dashboard.Module):
     '''Watch user expressions.'''
 
     def __init__(self):
-        self.table = set()
+        self.table = []
 
     def label(self):
         return 'Expressions'
@@ -2095,9 +2199,9 @@ class Expressions(Dashboard.Module):
         if self.align:
             label_width = max(len(expression) for expression in self.table) if self.table else 0
         default_radix = Expressions.get_default_radix()
-        for expression in self.table:
+        for number, expression in enumerate(self.table, start=1):
             label = expression
-            match = re.match('^/(\d+) +(.+)$', expression)
+            match = re.match(r'^/(\d+) +(.+)$', expression)
             try:
                 if match:
                     radix, expression = match.groups()
@@ -2108,9 +2212,10 @@ class Expressions(Dashboard.Module):
             finally:
                 if match:
                     run('set output-radix {}'.format(default_radix))
+            number = ansi(str(number), R.style_selected_2)
             label = ansi(expression, R.style_high) + ' ' * (label_width - len(expression))
             equal = ansi('=', R.style_low)
-            out.append('{} {} {}'.format(label, equal, value))
+            out.append('[{}] {} {} {}'.format(number, label, equal, value))
         return out
 
     def commands(self):
@@ -2122,8 +2227,7 @@ class Expressions(Dashboard.Module):
             },
             'unwatch': {
                 'action': self.unwatch,
-                'doc': 'Stop watching an expression.',
-                'complete': gdb.COMPLETE_EXPRESSION
+                'doc': 'Stop watching an expression by index.'
             },
             'clear': {
                 'action': self.clear,
@@ -2142,15 +2246,22 @@ class Expressions(Dashboard.Module):
 
     def watch(self, arg):
         if arg:
-            self.table.add(arg)
+            if arg not in self.table:
+                self.table.append(arg)
+            else:
+                raise Exception('Expression already watched')
         else:
             raise Exception('Specify an expression')
 
     def unwatch(self, arg):
         if arg:
             try:
-                self.table.remove(arg)
+                number = int(arg) - 1
             except:
+                number = -1
+            if 0 <= number < len(self.table):
+                self.table.pop(number)
+            else:
                 raise Exception('Expression not watched')
         else:
             raise Exception('Specify an expression')
@@ -2165,8 +2276,11 @@ class Expressions(Dashboard.Module):
         except RuntimeError:
             # XXX this is a fix for GDB <8.1.x see #161
             message = run('show output-radix')
-            match = re.match('^Default output radix for printing of values is (\d+)\.$', message)
+            match = re.match(r'^Default output radix for printing of values is (\d+)\.$', message)
             return match.groups()[0] if match else 10  # fallback
+
+# XXX workaround to support BP_BREAKPOINT in older GDB versions
+setattr(gdb, 'BP_CATCHPOINT', getattr(gdb, 'BP_CATCHPOINT', 26))
 
 class Breakpoints(Dashboard.Module):
     '''Display the breakpoints list.'''
@@ -2176,7 +2290,8 @@ class Breakpoints(Dashboard.Module):
         gdb.BP_WATCHPOINT: 'watch',
         gdb.BP_HARDWARE_WATCHPOINT: 'write watch',
         gdb.BP_READ_WATCHPOINT: 'read watch',
-        gdb.BP_ACCESS_WATCHPOINT: 'access watch'
+        gdb.BP_ACCESS_WATCHPOINT: 'access watch',
+        gdb.BP_CATCHPOINT: 'catch'
     }
 
     def label(self):
@@ -2226,6 +2341,9 @@ class Breakpoints(Dashboard.Module):
                 # format user location
                 location = breakpoint['location']
                 line += ' for {}'.format(ansi(location, style))
+            elif breakpoint['type'] == gdb.BP_CATCHPOINT:
+                what = breakpoint['what']
+                line += ' {}'.format(ansi(what, style))
             else:
                 # format user expression
                 expression = breakpoint['expression']
@@ -2259,17 +2377,6 @@ end
 
 # Better GDB defaults ----------------------------------------------------------
 
-define src-prof
-    dashboard -layout source expressions stack variables
-    dashboard source -style height 20
-end
-
-define asm-prof
-    dashboard -layout registers assembly memory stack
-    dashboard registers -style list 'rax rbx rcx rdx rsi rdi rbp rsp r8 r9 r10 r11 r12 r13 r14 r15 rip eflags cs ss es fs gs fs_base gs_base k_gs_base cr0 cr2 cr3 cr4 cr8 efer'
-end
-
-
 set history save
 set verbose off
 set print pretty on
@@ -2280,6 +2387,11 @@ set python print-stack full
 # Start ------------------------------------------------------------------------
 
 python Dashboard.start()
+
+# Fixes ------------------------------------------------------------------------
+
+# workaround for the GDB readline issue, see #325
+python import sys; sys.modules['readline'] = None
 
 # File variables ---------------------------------------------------------------
 

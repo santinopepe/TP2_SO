@@ -4,6 +4,7 @@
 #include <interrupts.h>
 #include <video.h>
 #include <test_mm.h>
+#include <test_list.h>
 #include <MemoryManager.h>
 
 
@@ -39,10 +40,14 @@ void * getStackBase()
 
 void initializeKernelBinary()
 {
+
+	
 	void * moduleAddresses[] = { sampleCodeModuleAddress, sampleDataModuleAddress };
 	loadModules(&endOfKernelBinary, moduleAddresses);
-	createMemoryManager(heapStart, HEAP_SIZE); 
 	clearBSS(&bss, &endOfKernel - &bss);
+
+	createMemoryManager(heapStart, HEAP_SIZE); 
+	
 }
 
 int main()
@@ -64,6 +69,20 @@ int main()
     } else {
         printf("--- Test del Memory Manager: PASSED ----\n"); 
     }
+#endif
+
+#ifdef TEST_LIST
+	char *test_argv[] = { NULL }; 
+	uint64_t test_argc = 0;
+	printf("Starting List test...\n"); 
+	uint64_t test_result = test_list(test_argc, test_argv);
+	if(test_result != 0) {
+		printf("--- Test de la lista: FAILED ----\n"); 
+		while(1) _hlt(); 
+	} else {
+		printf("--- Test de la lista: PASSED ----\n"); 
+	}
+	printf("List test finished.\n"); 
 #endif
 
 	((EntryPoint)sampleCodeModuleAddress)();

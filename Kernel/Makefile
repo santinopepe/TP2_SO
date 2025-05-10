@@ -18,6 +18,9 @@ ifeq ($(TEST), mm)
 
 endif
 
+ifeq ($(TEST), list)
+    TEST_CFLAGS += -DTEST_LIST
+endif
 
 MM_TYPE ?= buddy
 

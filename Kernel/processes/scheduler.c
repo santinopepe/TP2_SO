@@ -1,4 +1,4 @@
-#include <stdint.h>
+/*#include <stdint.h>
 #include <scheduler.h>
 #include <process.h>
 #include <MemoryManager.h>
@@ -230,20 +230,24 @@ void processSwitch(){
     }
     
     uint8_t pid = scheduler->currentPID;
-    scheduler->process[pid].status = READY; //ESTO puede que este mal, solo podemos usar esta funcion si el proceso esta en running, si se bloquea no se puede usar    
 
-    ReadyList * findNextProcess = scheduler->first; 
-   
-    while(findNextProcess != NULL){ 
-        if(pid == findNextProcess->PID && findNextProcess->next != NULL){ 
-            scheduler->currentPID = findNextProcess->next->PID; 
-            scheduler->process[findNextProcess->PID].status = RUNNING; //cambia el estado del proceso a running
-            removeFromList(scheduler, pid); //saca el proceso de la lista de listos
-            ReadyList *aux = scheduler->tail;
-            scheduler->tail = findNextProcess;
-            aux->next = scheduler->tail;
-            return; 
-        }
+    if(scheduler->process[pid].status == RUNNING){ //si el proceso actual es el que se esta ejecutando
+        scheduler->process[pid].status = READY; //cambia el estado del proceso a listo
+    }
+
+    ReadyList *aux;
+    if (scheduler->first->next != NULL) {
+        scheduler->currentPID = scheduler->first->next->PID;
+        
+        aux = scheduler->first;
+        
+        scheduler->first = scheduler->first->next;
+        scheduler->first->prev = NULL;
+        
+        aux->next = NULL;
+        scheduler->tail->next = aux;
+        aux->prev = scheduler->tail;
+        scheduler->tail = aux;
     }
 
     //Creo que esto no es roundRobing pero por ahora lo dejo asi
@@ -349,3 +353,4 @@ ProcessData *ps(){ //lo ideal aca seria devolver un array con la info de cada p{
     return processData;
 }
 
+*/

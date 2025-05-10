@@ -30,4 +30,4 @@ uint16_t waitForChildren(uint16_t pid){
 
 void initProcess(/*Params del proceso*/){
 
-}
+}*/
