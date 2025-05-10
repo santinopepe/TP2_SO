@@ -65,7 +65,8 @@ uint64_t test_mm(uint64_t argc, char *argv[]) {
 #include "test_util.h"   
 #include <MemoryManager.h> 
 #include <video.h>      
-#include <lib.h>         
+#include <lib.h>       
+#include  <stddef.h>
 #include <stdint.h>    
 
 #define MAX_BLOCKS 128
