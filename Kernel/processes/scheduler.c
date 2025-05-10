@@ -1,6 +1,6 @@
 #include <stdint.h>
 #include <scheduler.h>
-#include "Kernel/include/process.h"
+#include <process.h>
 #include <MemoryManager.h>
 #include <lib.h>
 
@@ -23,7 +23,7 @@ typedef struct SchedulerCDT{
     uint8_t currentPID; 
 }SchedulerCDT;
 
-static SchedulerADT getSchedulerADT(){
+SchedulerADT getSchedulerADT(){
     return SchedulerPointer; 
 }
 
@@ -252,7 +252,7 @@ void processSwitch(){
 }  
 
 void blockProcess(){ //bloquea el proceso, lo saca de la lista de listos y lo agrega a la lista de bloqueados
-    SchedulerADT scheduler = getSchedulerADT(){
+    SchedulerADT scheduler = getSchedulerADT();
     if(scheduler==NULL){
         return; 
     }

@@ -2,7 +2,14 @@
 #define PROCESS_H
 
 #include <stdint.h>
-#include <scheduler.h>
+
+typedef enum {
+    BLOCKED = 0,
+    READY,
+    RUNNING,
+    ZOMBIE,
+    DEAD
+} ProcessStatus;
 
 typedef struct process{
     ProcessStatus status;
@@ -13,6 +20,7 @@ typedef struct process{
     void *stack;
     void *basePointer;
 } Process;
+
 
 typedef struct ProcessData{ //datos del proceso para hacer el ps
     char name[20]; //nombre del proceso, 20 porque pintó
