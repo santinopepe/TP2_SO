@@ -8,14 +8,14 @@
 typedef struct DoubleLinkedListCDT * DoubleLinkedListADT;
 
 
-/*
+/**
 * @brief Crea una lista doblemente enlazada
 * @return DoubleLinkedListADT
 */
 DoubleLinkedListADT  createDoubleLinkedList();
 
 
-/*
+/**
 * @brief Inserta un elemento al principio de la lista
 * @param list: Lista doblemente enlazada
 * @param data: Dato a insertar
@@ -24,8 +24,7 @@ DoubleLinkedListADT  createDoubleLinkedList();
 */
 int insertFirst(DoubleLinkedListADT list, void *data);
 
-
-/*
+/**
 * @brief Inserta un elemento al final de la lista
 * @param list: Lista doblemente enlazada
 * @param data: Dato a insertar
@@ -35,7 +34,7 @@ int insertFirst(DoubleLinkedListADT list, void *data);
 int insertLast(DoubleLinkedListADT list, void *data);
 
 
-/*
+/**
 * @brief Elimina el primer elemento de la lista
 * @param list: Lista doblemente enlazada
 * @return 0: Si el elemento se eliminó correctamente
@@ -44,7 +43,7 @@ int insertLast(DoubleLinkedListADT list, void *data);
 int removeFirst(DoubleLinkedListADT list);
 
 
-/*
+/**
 * @brief Elimina el último elemento de la lista
 * @param list: Lista doblemente enlazada
 * @return 0: Si el elemento se eliminó correctamente
@@ -53,7 +52,7 @@ int removeFirst(DoubleLinkedListADT list);
 int removeLast(DoubleLinkedListADT list);
 
 
-/*
+/**
 * @brief Elimina un elemento de la lista
 * @param list: Lista doblemente enlazada
 * @param data: Dato a eliminar
@@ -63,7 +62,7 @@ int removeLast(DoubleLinkedListADT list);
 int removeElement(DoubleLinkedListADT list, void *data);
 
 
-/*
+/**
 * @brief Obtiene el primer elemento de la lista
 * @param list: Lista doblemente enlazada
 * @return Dato del primer elemento
@@ -71,7 +70,7 @@ int removeElement(DoubleLinkedListADT list, void *data);
 void * getFirst(DoubleLinkedListADT list);
 
 
-/*
+/**
 * @brief Obtiene el último elemento de la lista
 * @param list: Lista doblemente enlazada
 * @return Dato del último elemento
@@ -79,7 +78,7 @@ void * getFirst(DoubleLinkedListADT list);
 void * getLast(DoubleLinkedListADT list);
 
 
-/*
+/**
 * @brief Obtiene el tamaño de la lista
 * @param list: Lista doblemente enlazada
 * @return Tamaño de la lista
@@ -87,7 +86,7 @@ void * getLast(DoubleLinkedListADT list);
 int getSize(DoubleLinkedListADT list);
 
 
-/*
+/**
 * @brief Verifica si la lista está vacía
 * @param list: Lista doblemente enlazada
 * @return 1: Si la lista está vacía
@@ -96,7 +95,7 @@ int getSize(DoubleLinkedListADT list);
 int isEmpty(DoubleLinkedListADT list);
 
 
-/*
+/**
 * @brief Libera la memoria de la lista
 * @param list: Lista doblemente enlazada
 */
