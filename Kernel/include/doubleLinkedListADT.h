@@ -3,7 +3,19 @@
 
 #include <stddef.h>
 
+typedef struct Node
+{
+    void *data;
+    struct Node *next;
+    struct Node *prev;
+} Node;
 
+typedef struct DoubleLinkedListCDT
+{
+    Node *first;
+    Node *last;
+    int size;
+} DoubleLinkedListCDT;
 
 typedef struct DoubleLinkedListCDT * DoubleLinkedListADT;
 

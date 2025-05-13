@@ -28,4 +28,6 @@ void blockProcess();
 
 Process *findProcess(uint16_t pid); //devuelve el proceso con el pid pasado por parametro o NULL si no existe el proceso
 
+uint16_t getPid();
+
 #endif 

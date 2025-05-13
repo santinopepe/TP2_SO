@@ -4,13 +4,17 @@
 #include <lib.h>
 #include <scheduler.h>
 
+void initProcess(Process *process, void *rsp, uint8_t priority, uint16_t foregorund){
+
+}
+
 void freeProcess(Process *process){
     if(process == NULL){
         return; 
     }
-    free(process->rsp);
-    free(process->stack);
-    free(process->basePointer);
+    free(&process->rsp);
+    free(&process->stack);
+    free(&process->basePointer);
     free(process);
 }
 
@@ -27,7 +31,3 @@ uint16_t waitForChildren(uint16_t pid){
     //addToBlocked 
     return 0; 
 }   
-
-void initProcess(/*Params del proceso*/){
-
-}

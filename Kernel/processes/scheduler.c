@@ -3,23 +3,20 @@
 #include <process.h>
 #include <MemoryManager.h>
 #include <lib.h>
+#include <stddef.h>
+#include <doubleLinkedListADT.h>
 
 #define MAX_PROCESOS 1000
 #define STACK_SIZE 0x1000 //4kb
+#define MIN_QUANTUM 10 
 
 static void * SchedulerPointer = NULL;  
-
-typedef struct ReadyList{
-    uint8_t PID; 
-    struct ReadyList * next;  
-    struct ReadyList * prev;     
-}ReadyList; 
 
 typedef struct SchedulerCDT{
     Process process[MAX_PROCESOS]; //array de procesos, cada posicion es el pid del proceso
     uint8_t processCount; //cantidad de procesos en el array
-    ReadyList * first; 
-    ReadyList * tail; //capaz lo usamos para agregar procesos al final de la lista
+    DoubleLinkedListADT readyList;
+    DoubleLinkedListADT blockedList;
     uint8_t currentPID; 
 }SchedulerCDT;
 
@@ -27,7 +24,6 @@ SchedulerADT getSchedulerADT(){
     return SchedulerPointer; 
 }
 
-static void removeFromList(SchedulerADT scheduler, uint16_t pid); //prototipo de la funcion removeFromList
 
 SchedulerADT createScheduler(){
     SchedulerADT scheduler = malloc(sizeof(SchedulerCDT));
@@ -36,15 +32,16 @@ SchedulerADT createScheduler(){
     }
 
     SchedulerPointer = scheduler;
+    scheduler->readyList = createDoubleLinkedList();
+    scheduler->blockedList = createDoubleLinkedList();
 
     scheduler->processCount = 0;
-    scheduler->first = NULL;
-    scheduler->tail = NULL;
+
     for(int i = 0; i < MAX_PROCESOS; i++){
         scheduler->process[i].status = DEAD;
         scheduler->process[i].rsp = NULL;
-        scheduler->process[i].priority = 0;
-        scheduler->process[i].quantum = 0;
+        scheduler->process[i].priority = 0; //0 es la menor prioridad
+        scheduler->process[i].quantum = MIN_QUANTUM;
         scheduler->process[i].foreground = 0; //0 si es background, 1 si es foreground
         scheduler->process[i].stack = NULL; 
         scheduler->process[i].basePointer = NULL; 
@@ -60,7 +57,9 @@ int killProcess(uint16_t pid){ //devuelve 0 si pudo matar el proceso, -1 si no e
     if(scheduler->process[pid].status == DEAD){
         return -1; 
     } else if(scheduler->process[pid].status == RUNNING || scheduler->process[pid].status == READY){
-        removeFromList(scheduler, pid); 
+        removeElement(scheduler->readyList, &scheduler->process[pid]); 
+    } else if(scheduler->process[pid].status == BLOCKED){
+        removeElement(scheduler->blockedList, &scheduler->process[pid]); 
     }
     
 
@@ -80,10 +79,11 @@ int killProcess(uint16_t pid){ //devuelve 0 si pudo matar el proceso, -1 si no e
 
 int setPriority(uint16_t pid, uint8_t priority){ //devuelve 0 si pudo cambiar la prioridad, -1 si no existe el proceso o -2 si no se puede cambiar la prioridad
     SchedulerADT scheduler = getSchedulerADT();
-    if(scheduler == NULL){
+    if(scheduler == NULL || priority < 0){
         return -1; 
     }
     scheduler->process[pid].priority = priority; //cambia la prioridad del proceso al que se le pasa el pid
+    scheduler->process[pid].quantum = MIN_QUANTUM*(priority); 
     return 0; 
 }
 
@@ -126,7 +126,6 @@ uint16_t createProcess(void * entry_point, void * argv){ //devuelve el pid del p
         return -2; //excedido de procesos
     }
 
-
     //Buscamos el primer proceso muerto para usar su pid
     int i = 0; 
     while(scheduler->process[i].status != DEAD){ 
@@ -137,13 +136,12 @@ uint16_t createProcess(void * entry_point, void * argv){ //devuelve el pid del p
     scheduler->process[pid].status = READY;
     scheduler->process[pid].rsp = NULL;
     scheduler->process[pid].priority = 0;
-    scheduler->process[pid].quantum = 0;
+    scheduler->process[pid].quantum = MIN_QUANTUM;
     scheduler->process[pid].foreground = 0; //Pq aca usas scheduler->processCount en vez de pid?
 
-    //PROBABLEMETE CAMBIEMOS    
+    //PROBABLEMETE CAMBIEMOS VER LO DE SETSTACKFRAME
     scheduler->process[pid].stack = malloc(STACK_SIZE); //Esto es la base del stack? Pq tenemos esto y RSP 
     scheduler->process[pid].basePointer = scheduler->process[pid].stack ; //O esto es la base del stack
-    scheduler->processCount++;
 
     if(scheduler->process[pid].stack == NULL || scheduler->process[pid].basePointer == NULL){ //si no se pudo crear el stack o el basePointer
         return -1; //no se pudo crear el proceso
@@ -182,28 +180,15 @@ uint16_t createProcess(void * entry_point, void * argv){ //devuelve el pid del p
     *--stack = 0;                // R15
 
     scheduler->process[pid].rsp = (void *)stack;
-    scheduler->processCount++;
 
-    //Agregamos el proceso a la lista de listos
-    ReadyList * newProcess = malloc(sizeof(ReadyList)); //creamos el nuevo proceso en la lista de listos
-    if(newProcess == NULL){
-        return -1; //no se pudo crear el proceso
+    if(scheduler->readyList->first==NULL){
+        insertFirst(scheduler->readyList, &scheduler->process[pid]);
     }
-    newProcess->PID = pid; 
-    newProcess->next = NULL; 
-    newProcess->prev = NULL; 
-    
-    if(scheduler->first == NULL){
-        scheduler->first = newProcess;
+    else{
+        insertLast(scheduler->readyList, &scheduler->process[pid]);
     }
-    else{ 
-        ReadyList * lastProcess = scheduler->first; 
-        while(lastProcess->next != NULL){
-            lastProcess = lastProcess->next;
-        }
-        lastProcess->next = newProcess; 
-        newProcess->prev = lastProcess; 
-    }
+
+    scheduler->processCount++;
 
     return pid; 
 }  
@@ -218,14 +203,14 @@ uint16_t getPid(){
 }
 
 
-// ESTO puede andar pero tenemos que tener cuidado con el tema de procesos bloqueados, pq si 
+// ESTO puede anuint6dar peenemos que tener cuidado con el tema de procesos bloqueados, pq si 
 // bloqueamos el proceso y lo sacamos de la lista de listos, no se puede usar esta funcion
 // pero si no lo sacamos seteamos el currentpid al siguiente y despues lo sacamos de la lista de listos funca.
 //Pasa a ser el setter de running a ready
 void processSwitch(){
 
     SchedulerADT scheduler = getSchedulerADT(); 
-    if(scheduler == NULL || scheduler->first == NULL){
+    if(scheduler == NULL || scheduler->readyList->first == NULL){
         return; 
     }
     
@@ -235,23 +220,22 @@ void processSwitch(){
         scheduler->process[pid].status = READY; //cambia el estado del proceso a listo
     }
 
-    ReadyList *aux;
-    if (scheduler->first->next != NULL) {
-        scheduler->currentPID = scheduler->first->next->PID;
+    Node *aux;
+    if (scheduler->readyList->first->next != NULL) {
+        /*scheduler->currentPID = scheduler->readyList->first->next->PID;*/
         
-        aux = scheduler->first;
+        aux = scheduler->readyList->first;
         
-        scheduler->first = scheduler->first->next;
-        scheduler->first->prev = NULL;
+        scheduler->readyList->first = scheduler->readyList->first->next;
+        scheduler->readyList->first->prev = NULL;
         
         aux->next = NULL;
-        scheduler->tail->next = aux;
-        aux->prev = scheduler->tail;
-        scheduler->tail = aux;
+        
+        insertLast(scheduler->readyList, aux); //agrega el proceso al final de la lista de listos
     }
 
     //Creo que esto no es roundRobin pero por ahora lo dejo asi
-    scheduler->currentPID = scheduler->first->PID; //si no hay siguiente, vuelve al primero
+   /* scheduler->currentPID = scheduler->readyList->first->PID;*/ //si no hay siguiente, vuelve al primero
 
 }  
 
@@ -266,42 +250,18 @@ void blockProcess(){ //bloquea el proceso, lo saca de la lista de listos y lo ag
     if(scheduler->process[scheduler->currentPID].status == RUNNING){ 
         scheduler->process[scheduler->currentPID].status = BLOCKED; 
         processSwitch();
-        removeFromList(scheduler, pid);
-        //si queremos hacer una lista de bloqueados, aca tendriamos que 
-        //agregar el proceso a la lista de bloqueados
+        removeElement(scheduler->readyList, &scheduler->process[pid]);
+
+        insertLast(scheduler->blockedList, &scheduler->process[pid]); //agrega el proceso a la lista de bloqueados
+    } else if (scheduler->process[scheduler->currentPID].status == READY){
+        scheduler->process[scheduler->currentPID].status = BLOCKED; 
+        removeElement(scheduler->readyList, &scheduler->process[pid]);
+
+        insertLast(scheduler->blockedList, &scheduler->process[pid]); //agrega el proceso a la lista de bloqueados
     }
        
 }
 
-static void removeFromList(SchedulerADT scheduler, uint16_t pid){
-
-    if(scheduler == NULL){
-        return; 
-    }
-    ReadyList * findProcess = scheduler->first;
-    while( findProcess->next != NULL){
-        if(findProcess->PID == pid){
-            if(findProcess->prev!=NULL){
-                findProcess->next->prev=findProcess->prev;
-            }
-            else{
-                findProcess->next->prev=NULL; 
-                scheduler->first = findProcess->next; // si es el primer proceso de la lista 
-            }
-            if(findProcess->next!=NULL){
-                findProcess->prev->next=findProcess->next;
-            }else{
-                findProcess->prev->next=NULL;
-                scheduler->tail = findProcess->prev; //si es el ultimo proceso de la lista
-                
-            }
-
-            freeProcess(findProcess);
-            break;
-        }
-        findProcess = findProcess->next;
-    }
-}
 
 Process *findProcess(uint16_t pid){
     SchedulerADT scheduler = getSchedulerADT();
@@ -319,13 +279,15 @@ void unblockProcess(uint16_t pid){
     
     if(scheduler->process[pid].status == BLOCKED){
         scheduler->process[pid].status = READY; 
-        scheduler->process[pid].quantum = 0;
-        //En este caso se agregaria el proceso desbloqueado al principio de la lista de procesos ready
-        ReadyList * newProcess = malloc(sizeof(ReadyList));
-        newProcess->PID = pid;
-        newProcess->prev = NULL; 
-        newProcess->next = scheduler->first;
-        scheduler->first = newProcess; 
+        Process * unblockedProcess = findProcess(pid);
+        
+        if(scheduler->readyList->first == NULL){
+            insertFirst(scheduler->readyList, unblockedProcess);
+        } else {
+            insertLast(scheduler->readyList, unblockedProcess);
+        }
+
+        removeElement(scheduler->blockedList, unblockedProcess); 
     }
 }
 

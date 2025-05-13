@@ -1,19 +1,7 @@
 #include <doubleLinkedListADT.h>
 #include <MemoryManager.h>
 
-typedef struct Node
-{
-    void *data;
-    struct Node *next;
-    struct Node *prev;
-} Node;
 
-typedef struct DoubleLinkedListCDT
-{
-    Node *first;
-    Node *last;
-    int size;
-} DoubleLinkedListCDT;
 
 static Node *createNode(void *data);
 

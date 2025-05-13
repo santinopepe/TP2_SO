@@ -3,6 +3,7 @@
     "string.h": "c",
     "memoryinfo.h": "c",
     "stdint.h": "c",
-    "process.h": "c"
+    "process.h": "c",
+    "doublelinkedlistadt.h": "c"
   }
 }
