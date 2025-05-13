@@ -1,4 +1,4 @@
-/*#include <stdint.h>
+#include <stdint.h>
 #include <scheduler.h>
 #include <process.h>
 #include <MemoryManager.h>
@@ -250,7 +250,7 @@ void processSwitch(){
         scheduler->tail = aux;
     }
 
-    //Creo que esto no es roundRobing pero por ahora lo dejo asi
+    //Creo que esto no es roundRobin pero por ahora lo dejo asi
     scheduler->currentPID = scheduler->first->PID; //si no hay siguiente, vuelve al primero
 
 }  
@@ -353,4 +353,3 @@ ProcessData *ps(){ //lo ideal aca seria devolver un array con la info de cada p{
     return processData;
 }
 
-*/

@@ -4,7 +4,6 @@
 #include <stdint.h> 
 #include <process.h>
 
-
 typedef struct SchedulerCDT * SchedulerADT; 
 
 SchedulerADT getSchedulerADT();
