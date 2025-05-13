@@ -14,4 +14,5 @@
 .bash_history
 
 *.elf
+
 .gdbinit
