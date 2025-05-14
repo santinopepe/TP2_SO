@@ -7,7 +7,7 @@ static Node *createNode(void *data);
 
 DoubleLinkedListADT createDoubleLinkedList()
 {
-    DoubleLinkedListADT list = (DoubleLinkedListADT)malloc(sizeof(DoubleLinkedListADT));
+    DoubleLinkedListADT list = (DoubleLinkedListADT)malloc(sizeof(struct DoubleLinkedListCDT));
     list->first = NULL;
     list->last = NULL;
     list->size = 0;

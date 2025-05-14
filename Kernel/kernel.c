@@ -6,7 +6,12 @@
 #include <test_mm.h>
 #include <test_list.h>
 #include <MemoryManager.h>
+#include <scheduler.h>
+#include <process.h>
 
+#define STDIN 0 
+#define STDOUT 1 
+#define STDERR 2 
 
 extern uint8_t text;
 extern uint8_t rodata;
@@ -53,7 +58,12 @@ void initializeKernelBinary()
 int main()
 {	
 	load_idt();
-    
+
+	uint16_t fileDescriptors[] = {STDIN, STDOUT, STDERR};
+	char *argv[] = {"shell"};
+    createScheduler();
+	createProcess((uint64_t)sampleCodeModuleAddress, argv, 1, 0, fileDescriptors);
+
 /* Agregue esto para tener la posiblidad de ejecutar el test_mm.c dentro de kernel space*/
 #ifdef TEST_MM
     char max_mem_str[] = "16777216"; // 16MB
@@ -85,7 +95,7 @@ int main()
 	printf("List test finished.\n"); 
 #endif
 
-	((EntryPoint)sampleCodeModuleAddress)();
+	
 
     
 	while(1) _hlt();

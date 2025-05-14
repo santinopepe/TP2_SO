@@ -12,12 +12,31 @@
 
 static void * SchedulerPointer = NULL;  
 
+// ESTO habria que cambiarlo
+static void strcpy(char dest[], const char source[])
+{
+    int i = 0;
+    while (1)
+    {
+        dest[i] = source[i];
+
+        if (dest[i] == '\0')
+        {
+            break;
+        }
+
+        i++;
+    }
+    return;
+}
+
 typedef struct SchedulerCDT{
     Process process[MAX_PROCESOS]; //array de procesos, cada posicion es el pid del proceso
     uint8_t processCount; //cantidad de procesos en el array
     DoubleLinkedListADT readyList;
     DoubleLinkedListADT blockedList;
     uint8_t currentPID; 
+    uint64_t quantum; 
 }SchedulerCDT;
 
 SchedulerADT getSchedulerADT(){
@@ -36,6 +55,8 @@ SchedulerADT createScheduler(){
     scheduler->blockedList = createDoubleLinkedList();
 
     scheduler->processCount = 0;
+    scheduler->quantum = 0;
+    scheduler->currentPID = 0; 
 
     for(int i = 0; i < MAX_PROCESOS; i++){
         scheduler->process[i].status = DEAD;
@@ -43,8 +64,15 @@ SchedulerADT createScheduler(){
         scheduler->process[i].priority = 0; //0 es la menor prioridad
         scheduler->process[i].quantum = MIN_QUANTUM;
         scheduler->process[i].foreground = 0; //0 si es background, 1 si es foreground
-        scheduler->process[i].stack = NULL; 
-        scheduler->process[i].basePointer = NULL; 
+        scheduler->process[i].stack = 0; 
+        scheduler->process[i].basePointer = 0; 
+        scheduler->process[i].argv=NULL;
+        scheduler->process[i].argc=0;
+        scheduler->process[i].rip=0;
+        scheduler->process[i].fileDescriptors[0]=0;
+        scheduler->process[i].fileDescriptors[1]=0;
+        scheduler->process[i].fileDescriptors[2]=0;
+        scheduler->process[i].name=NULL;
     }
     return scheduler;
 }
@@ -57,19 +85,22 @@ int killProcess(uint16_t pid){ //devuelve 0 si pudo matar el proceso, -1 si no e
     if(scheduler->process[pid].status == DEAD){
         return -1; 
     } else if(scheduler->process[pid].status == RUNNING || scheduler->process[pid].status == READY){
-        removeElement(scheduler->readyList, &scheduler->process[pid]); 
+        removeElement(scheduler->readyList, &pid); 
     } else if(scheduler->process[pid].status == BLOCKED){
-        removeElement(scheduler->blockedList, &scheduler->process[pid]); 
+        removeElement(scheduler->blockedList, &pid); 
     }
     
-
+    scheduler->process[pid].stack=0;
+    scheduler->process[pid].basePointer=0;
     scheduler->process[pid].status = DEAD;
     scheduler->process[pid].rsp = NULL;
     scheduler->process[pid].priority = 0;
     scheduler->process[pid].quantum = 0;
     scheduler->process[pid].foreground = 0;
-    scheduler->process[pid].stack = NULL; //libera la memoria del stack
-    scheduler->process[pid].basePointer = NULL; //libera la memoria del basePointer
+    scheduler->process[pid].argv=NULL;
+    scheduler->process[pid].argc=0;
+    scheduler->process[pid].rip=0;
+    scheduler->process[pid].name=NULL;
 
     scheduler->processCount--; 
 
@@ -116,7 +147,7 @@ void yield(){ //funcion para renuciar al cpu, para ceder su espacio a otro proce
 // RIP ??? ACA seria la primera instruccion a ejecutar
 // Los parametros de la funcion a ejecutar
 
-uint16_t createProcess(void * entry_point, void * argv){ //devuelve el pid del proceso creado o -1 si no se pudo crear el proceso o -2 si no hay espacio en la tabla de procesos
+uint16_t createProcess(uint64_t rip, char **args, int argc, uint8_t priority, uint16_t fileDescriptors[]){ //devuelve el pid del proceso creado o -1 si no se pudo crear el proceso o -2 si no hay espacio en la tabla de procesos
     SchedulerADT scheduler = getSchedulerADT(); 
     if(scheduler == NULL){
         return -1; 
@@ -133,59 +164,18 @@ uint16_t createProcess(void * entry_point, void * argv){ //devuelve el pid del p
     }
 
     uint8_t pid = i; 
-    scheduler->process[pid].status = READY;
-    scheduler->process[pid].rsp = NULL;
-    scheduler->process[pid].priority = 0;
-    scheduler->process[pid].quantum = MIN_QUANTUM;
-    scheduler->process[pid].foreground = 0; //Pq aca usas scheduler->processCount en vez de pid?
+    Process* p = &scheduler->process[pid];
 
-    //PROBABLEMETE CAMBIEMOS VER LO DE SETSTACKFRAME
-    scheduler->process[pid].stack = malloc(STACK_SIZE); //Esto es la base del stack? Pq tenemos esto y RSP 
-    scheduler->process[pid].basePointer = scheduler->process[pid].stack ; //O esto es la base del stack
-
-    if(scheduler->process[pid].stack == NULL || scheduler->process[pid].basePointer == NULL){ //si no se pudo crear el stack o el basePointer
-        return -1; //no se pudo crear el proceso
+    if(initProcess(p, pid, rip, args, argc, fileDescriptors)==-1){
+        free(p);
+        return -1;
     }
-
-    scheduler->process[pid].rsp = scheduler->process[pid].stack + STACK_SIZE; //esto es el stack, el rsp apunta al final del stack
     
-
-    //Creacion de Stack falso (El burro de arranque)
-    uint64_t *stack = (uint64_t *)scheduler->process[pid].rsp;
-    if(stack == NULL){
-        return -1; //no se pudo crear el stack
-    }
-
-    *--stack = 0x0;              // SS 
-
-    uint64_t* temp = --stack;
-    *temp = (uint64_t)stack;     // RSP
-    
-    *--stack = 0x202;            // RFLAGS
-    *--stack = 0x8;              // CS
-    *--stack = (uint64_t)entry_point; // RIP
-
-    *--stack = (uint64_t)argv;    // RDI
-    *--stack = 0;                // RSI
-    *--stack = 0;                // RDX
-    *--stack = 0;                // RCX
-    *--stack = 0;                // R8
-    *--stack = 0;                // R9
-    *--stack = 0;                // RAX
-    *--stack = 0;                // RBX
-    *--stack = 0;                // RBP
-    *--stack = 0;                // R12
-    *--stack = 0;                // R13
-    *--stack = 0;                // R14
-    *--stack = 0;                // R15
-
-    scheduler->process[pid].rsp = (void *)stack;
-
     if(scheduler->readyList->first==NULL){
-        insertFirst(scheduler->readyList, &scheduler->process[pid]);
+        insertFirst(scheduler->readyList, &pid);
     }
     else{
-        insertLast(scheduler->readyList, &scheduler->process[pid]);
+        insertLast(scheduler->readyList, &pid);
     }
 
     scheduler->processCount++;
@@ -222,7 +212,7 @@ void processSwitch(){
 
     Node *aux;
     if (scheduler->readyList->first->next != NULL) {
-        /*scheduler->currentPID = scheduler->readyList->first->next->PID;*/
+        scheduler->currentPID = *(uint8_t *)scheduler->readyList->first->next->data;
         
         aux = scheduler->readyList->first;
         
@@ -231,13 +221,16 @@ void processSwitch(){
         
         aux->next = NULL;
         
-        insertLast(scheduler->readyList, aux); //agrega el proceso al final de la lista de listos
+        scheduler->readyList->last->next = aux;
+        aux->prev = scheduler->readyList->last;
+        scheduler->readyList->last = aux;
     }
 
     //Creo que esto no es roundRobin pero por ahora lo dejo asi
-   /* scheduler->currentPID = scheduler->readyList->first->PID;*/ //si no hay siguiente, vuelve al primero
+    scheduler->currentPID = *(uint8_t *)scheduler->readyList->first->data; //si no hay siguiente, vuelve al primero
+    scheduler->process[scheduler->currentPID].status = RUNNING; 
 
-}  
+} 
 
 void blockProcess(){ //bloquea el proceso, lo saca de la lista de listos y lo agrega a la lista de bloqueados
     SchedulerADT scheduler = getSchedulerADT();
@@ -250,14 +243,14 @@ void blockProcess(){ //bloquea el proceso, lo saca de la lista de listos y lo ag
     if(scheduler->process[scheduler->currentPID].status == RUNNING){ 
         scheduler->process[scheduler->currentPID].status = BLOCKED; 
         processSwitch();
-        removeElement(scheduler->readyList, &scheduler->process[pid]);
+        removeElement(scheduler->readyList, &pid);
 
-        insertLast(scheduler->blockedList, &scheduler->process[pid]); //agrega el proceso a la lista de bloqueados
+        insertLast(scheduler->blockedList, &pid); //agrega el proceso a la lista de bloqueados
     } else if (scheduler->process[scheduler->currentPID].status == READY){
         scheduler->process[scheduler->currentPID].status = BLOCKED; 
-        removeElement(scheduler->readyList, &scheduler->process[pid]);
+        removeElement(scheduler->readyList, &pid);
 
-        insertLast(scheduler->blockedList, &scheduler->process[pid]); //agrega el proceso a la lista de bloqueados
+        insertLast(scheduler->blockedList, &pid); //agrega el proceso a la lista de bloqueados
     }
        
 }
@@ -279,15 +272,15 @@ void unblockProcess(uint16_t pid){
     
     if(scheduler->process[pid].status == BLOCKED){
         scheduler->process[pid].status = READY; 
-        Process * unblockedProcess = findProcess(pid);
+        
         
         if(scheduler->readyList->first == NULL){
-            insertFirst(scheduler->readyList, unblockedProcess);
+            insertFirst(scheduler->readyList, &pid);
         } else {
-            insertLast(scheduler->readyList, unblockedProcess);
+            insertLast(scheduler->readyList, &pid);
         }
 
-        removeElement(scheduler->blockedList, unblockedProcess); 
+        removeElement(scheduler->blockedList, &pid); 
     }
 }
 
@@ -308,6 +301,7 @@ ProcessData *ps(){ //lo ideal aca seria devolver un array con la info de cada p{
             processData[j].stack = scheduler->process[i].stack;
             processData[j].basePointer = scheduler->process[i].basePointer;
             processData[j].foreground = scheduler->process[i].foreground;
+            strcpy(processData[j].name, processData[i].name);
             j++;
         }
     }
@@ -315,3 +309,26 @@ ProcessData *ps(){ //lo ideal aca seria devolver un array con la info de cada p{
     return processData;
 }
 
+void *schedule(void * prevStackPointer){
+    SchedulerADT scheduler = getSchedulerADT();
+    if(scheduler == NULL){
+        return prevStackPointer; 
+    } 
+    if (scheduler->readyList->first == NULL){
+        return prevStackPointer; 
+    }
+    scheduler->quantum--;
+    if(scheduler->quantum >0 && scheduler->process[scheduler->currentPID].status == RUNNING){
+        return scheduler->process[scheduler->currentPID].rsp; //si es mayor que 0 que siga ejecurando 
+    }
+
+    if(scheduler->quantum == 0 || scheduler->process[scheduler->currentPID].status == BLOCKED || scheduler->process[scheduler->currentPID].status == DEAD){
+        scheduler->process[scheduler->currentPID].rsp = prevStackPointer; 
+        processSwitch(); 
+        
+    }
+    
+    scheduler->quantum= scheduler->process[scheduler->currentPID].quantum; 
+
+    return scheduler->process[scheduler->currentPID].rsp; 
+}

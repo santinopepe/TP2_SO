@@ -4,6 +4,9 @@
 #include <stdint.h> 
 #include <process.h>
 
+#define MIN_QUANTUM 10 
+#define STACK_SIZE 0x1000 //4kb
+
 typedef struct SchedulerCDT * SchedulerADT; 
 
 SchedulerADT getSchedulerADT();
@@ -14,7 +17,7 @@ int setPriority(uint16_t pid, uint8_t priority); //devuelve 0 si pudo cambiar la
 
 //int waitForChildren(); //devuelve 0 si pudo esperar a los hijos, -1 si no existe el proceso o -2 si no se puede esperar a los hijos
 
-uint16_t createProcess(); //devuelve el pid del proceso creado o -1 si no se pudo crear el proceso o -2 si no hay espacio en la tabla de procesos
+uint16_t createProcess(uint64_t rip, char **args, int argc, uint8_t priority, uint16_t fileDescriptors[]); //devuelve el pid del proceso creado o -1 si no se pudo crear el proceso o -2 si no hay espacio en la tabla de procesos
 
 void yield();
 
@@ -29,5 +32,7 @@ void blockProcess();
 Process *findProcess(uint16_t pid); //devuelve el proceso con el pid pasado por parametro o NULL si no existe el proceso
 
 uint16_t getPid();
+
+void *schedule(void * prevStackPointer);
 
 #endif 
