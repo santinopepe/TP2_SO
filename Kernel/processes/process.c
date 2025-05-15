@@ -49,7 +49,7 @@ uint8_t initProcess(Process *process, uint16_t pid, uint64_t rip, char **args, i
     process->rip=rip;
     process->argc=argc;
     process->name = malloc(strlen(args[0])+1);
-    if(process->name=NULL){
+    if(process->name==NULL){
         return -1;
     }
     process->argv = allocArgv(process, process->argv, argc);

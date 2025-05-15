@@ -5,6 +5,19 @@
 
 #define READ 0
 #define WRITE 1
+#define PIPE_SIZE 512 // ESTO ES UNA LIMITACIÓN
+#define MAX_PIPES 50  // ESTO ES UNA LIMITACIÓN
+
+typedef struct Pipe
+{
+    char buffer[PIPE_SIZE];
+    uint8_t readIndex;
+    uint8_t writeIndex;
+    uint8_t size;
+    int8_t fd;
+    int8_t inputPID, outputPID;
+    uint8_t readLock, writeLock;
+} Pipe;
 
 typedef struct pipeManagerCDT *pipeManagerADT;
 

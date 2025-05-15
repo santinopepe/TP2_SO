@@ -5,7 +5,7 @@ KERNEL=kernel.bin
 # Inicialmente, incluimos todos los archivos .c excepto los de memory/
 # Los archivos de memory/ los añadiremos condicionalmente después
 SOURCES=$(filter-out memory/bitMap.c memory/buddy.c, $(wildcard *.c drivers/*.c interruptions/*.c lib/*.c memory/*.c pipes/*.c processes/*.c scheduler/*.c semaphores/*.c syscalls/*.c ))
-SOURCES_ASM=$(wildcard asm/*.asm)
+SOURCES_ASM=$(wildcard asm/*.asm semaphores/*.asm)
 
 OBJECTS=$(SOURCES:.c=.o)
 OBJECTS_ASM=$(SOURCES_ASM:.asm=.o)

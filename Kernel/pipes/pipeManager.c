@@ -3,20 +3,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <process.h>
-
-#define PIPE_SIZE 512 // ESTO ES UNA LIMITACIÓN
-#define MAX_PIPES 50  // ESTO ES UNA LIMITACIÓN
-
-typedef struct Pipe
-{
-    char buffer[PIPE_SIZE];
-    uint8_t readIndex;
-    uint8_t writeIndex;
-    uint8_t size;
-    int8_t fd;
-    int8_t inputPID, outputPID;
-    uint8_t readLock, writeLock;
-} Pipe;
+#include <scheduler.h>
 
 typedef struct pipeManagerCDT
 {
@@ -61,7 +48,7 @@ Pipe createPipe()
 
 
 
-int8_t openPipe(uint16_t pid, uint8_t mode)
+uint8_t openPipe(uint16_t pid, uint8_t mode)
 {
 
     if (pipeManager->pipeCount >= MAX_PIPES){
