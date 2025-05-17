@@ -52,17 +52,19 @@ void initializeKernelBinary()
 	clearBSS(&bss, &endOfKernel - &bss);
 
 	createMemoryManager(heapStart, HEAP_SIZE); 
-	
+	_cli();
+	createScheduler();
+	_sti();
+	uint16_t fileDescriptors[] = {STDIN, STDOUT, STDERR};
+	char *argv[] = {"shell"};
+    printf("sample = %d\n", (uint64_t)sampleCodeModuleAddress);
+	createProcess((uint64_t)sampleCodeModuleAddress, argv, 1, 0, fileDescriptors);
+	printf("Kernel binary initialized.\n");
 }
 
 int main()
 {	
 	load_idt();
-
-	uint16_t fileDescriptors[] = {STDIN, STDOUT, STDERR};
-	char *argv[] = {"shell"};
-    createScheduler();
-	createProcess((uint64_t)sampleCodeModuleAddress, argv, 1, 0, fileDescriptors);
 
 /* Agregue esto para tener la posiblidad de ejecutar el test_mm.c dentro de kernel space*/
 #ifdef TEST_MM

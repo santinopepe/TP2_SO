@@ -13,21 +13,16 @@ static int strlen(const char *str){ //esto Hay que cambiarlo
 }
 
 // ESTO habria que cambiarlo
-static void strcpy(char dest[], const char source[])
-{
+static void strcpy(char *dest, const char *source) {
+    if (dest == NULL || source == NULL) {
+        return;
+    }
     int i = 0;
-    while (1)
-    {
+    while (source[i] != '\0') {
         dest[i] = source[i];
-
-        if (dest[i] == '\0')
-        {
-            break;
-        }
-
         i++;
     }
-    return;
+    dest[i] = '\0';
 }
 
 
@@ -35,43 +30,52 @@ static char **allocArgv(Process *p, char **argv, int argc);
 
 
 
-uint8_t initProcess(Process *process, uint16_t pid, uint64_t rip, char **args, int argc, uint16_t fileDescriptors[]){
-    if(pid > 1){ 
-        process->status = BLOCKED; //Si es la shell arranca bloqueado
-    }
-    else{
-        process->status = READY;
-    }
+uint8_t initProcess(Process *process, uint16_t pid, uint64_t rip, char **args, int argc, uint16_t fileDescriptors[]) {
     process->PID = pid;
     process->priority = 0;
     process->quantum = MIN_QUANTUM;
-    process->foreground = 0; 
-    process->rip=rip;
-    process->argc=argc;
-    process->name = malloc(strlen(args[0])+1);
-    if(process->name==NULL){
+    process->foreground = 1;
+    process->rip = rip;
+    process->argc = argc;
+
+    // Asignar memoria para el nombre
+    process->name = malloc(strlen(args[0]) + 1);
+    if (process->name == NULL) {
         return -1;
     }
-    process->argv = allocArgv(process, process->argv, argc);
     strcpy(process->name, args[0]);
 
-    if(process->argv==NULL){
+    // Asignar memoria para argv
+    process->argv = allocArgv(process, args, argc);
+    if (process->argv == NULL) {
+        free(process->name);
         return -1;
     }
 
-    process->basePointer = (uint64_t) malloc(STACK_SIZE) + STACK_SIZE; //Esto es la base del stack
-
-    if(process->basePointer == 0){ //si no se pudo crear el stack o el basePointer
-        free((void*) (process->argv));
-        return -1; //no se pudo crear el proceso
+    // Asignar memoria para el stack (asegurar espacio para alineación)
+    process->basePointer = (uint64_t)malloc(STACK_SIZE + 16);
+    // Alinear basePointer a 16 bytes
+    process->basePointer = (process->basePointer + STACK_SIZE + 15) & ~0xF;
+    if (process->basePointer == 0) {
+        free(process->name);
+        for (int i = 0; i < argc; i++) {
+            free(process->argv[i]);
+        }
+        free(process->argv);
+        return -1;
     }
 
-    process->rsp = (void *) process->basePointer; //esto es el stack, el rsp apunta al final del stack
-    process->stack = setUpStackFrame(process->basePointer, process->rip, argc, process->argv);
+    
 
-    for(int i=0; i<CANT_FILE_DESCRIPTORS; i++){
+    // Configurar el stack frame
+    process->stack = setUpStackFrame(process->basePointer, rip, argc, process->argv);
+    process->rsp = (void *)process->stack;
+
+    for (int i = 0; i < CANT_FILE_DESCRIPTORS; i++) {
         process->fileDescriptors[i] = fileDescriptors[i];
     }
+
+    process->status = (pid == 0) ? RUNNING : READY;
 
     return 0;
 }
