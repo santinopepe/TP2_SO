@@ -2,37 +2,26 @@ global setUpStackFrame
 
 section .text
 
+global setUpStackFrame
+
+section .text
+
+; setUpStackFrame(basePointer, rip, argc, argv)
+; rdi = basePointer (stack top, alineado)
+; rsi = rip (entry point)
+; rdx = argc
+; rcx = argv
+
 setUpStackFrame:
-    push rbp 
-    mov rbp, rsp
+    mov     rsp, rdi         ; rsp = basePointer (ya alineado)
+    push    0x0              ; SS (no usado en modo kernel, pero requerido por iretq)
+    push    rdi              ; RSP (valor inicial del stack del proceso)
+    push    0x202            ; RFLAGS (interrupt enable)
+    push    0x8              ; CS (kernel code segment)
+    push    rsi              ; RIP (entry point)
 
-    mov rsp, rdi 
-    and rsp, -16
-    push 0x0
-    push rdi
-    push 0x202
-    push 0x8
-    push rsi
+    ; Opcional: pasar argc y argv en los registros según tu convención
+    ; Si tu primer instrucción es un wrapper que hace "call entry(argc, argv)", no necesitas pushearlos
 
-    push rax
-    push rbx
-    push rdi
-    push rsi
-    push rbp
-
-    push rdx
-    push rcx
-    
-    push r8
-    push r9
-    push r10
-	push r11
-	push r12
-	push r13
-	push r14
-	push r15
-
-    mov rax, rsp
-    mov rsp, rbp
-    pop rbp
+    mov     rax, rsp         ; return value: nuevo rsp
     ret

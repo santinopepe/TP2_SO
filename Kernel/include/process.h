@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+typedef int (*EntryPoint)();
+
 #define CANT_FILE_DESCRIPTORS 3
 
 typedef enum {
@@ -17,7 +19,7 @@ typedef struct process{
     char *name;
     char **argv;
     int argc;
-    uint64_t rip;
+    EntryPoint rip;
     ProcessStatus status;
     void *rsp;
     uint8_t priority;
@@ -47,5 +49,7 @@ uint16_t waitForChildren(uint16_t pid);
 uint64_t setUpStackFrame(uint64_t stackBase, uint64_t code, int argc, char *args[]);
 
 uint8_t initProcess(Process *process, uint16_t pid, uint64_t rip, char **args, int argc, uint16_t fileDescriptors[]);
+
+char **allocArgv(Process *p, char **argv, int argc);
 
 #endif 

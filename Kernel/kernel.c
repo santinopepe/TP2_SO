@@ -46,23 +46,28 @@ void * getStackBase()
 void initializeKernelBinary()
 {
 
-	
-	void * moduleAddresses[] = { sampleCodeModuleAddress, sampleDataModuleAddress };
-	loadModules(&endOfKernelBinary, moduleAddresses);
-	clearBSS(&bss, &endOfKernel - &bss);
 
-	createMemoryManager(heapStart, HEAP_SIZE); 
-	
+    void * moduleAddresses[] = { sampleCodeModuleAddress, sampleDataModuleAddress };
+    loadModules(&endOfKernelBinary, moduleAddresses);
+    clearBSS(&bss, &endOfKernel - &bss);
+
+    _cli();
+    createMemoryManager(heapStart, HEAP_SIZE); 
+    createScheduler();
+    _sti();
+
 }
 
 int main()
 {	
-	load_idt();
+	load_idt();	
 
-	uint16_t fileDescriptors[] = {STDIN, STDOUT, STDERR};
-	char *argv[] = {"shell"};
     createScheduler();
-	createProcess((uint64_t)sampleCodeModuleAddress, argv, 1, 0, fileDescriptors);
+	static char arg0[] = "shell";
+	static char *argv[] = {arg0, NULL};
+	static uint16_t fileDescriptors[] = {STDIN, STDOUT, STDERR};
+	createProcess((EntryPoint)sampleCodeModuleAddress, argv, 1, 0, fileDescriptors);
+
 
 /* Agregue esto para tener la posiblidad de ejecutar el test_mm.c dentro de kernel space*/
 #ifdef TEST_MM

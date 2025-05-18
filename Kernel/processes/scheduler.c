@@ -12,6 +12,14 @@
 
 static void * SchedulerPointer = NULL;  
 
+static int strlen(const char *str){ //esto Hay que cambiarlo
+    int len = 0;
+    while(str[len] != '\0'){
+        len++;
+    }
+    return len;
+}
+
 // ESTO habria que cambiarlo
 static void strcpy(char dest[], const char source[])
 {
@@ -147,41 +155,84 @@ void yield(){ //funcion para renuciar al cpu, para ceder su espacio a otro proce
 // RIP ??? ACA seria la primera instruccion a ejecutar
 // Los parametros de la funcion a ejecutar
 
-uint16_t createProcess(uint64_t rip, char **args, int argc, uint8_t priority, uint16_t fileDescriptors[]){ //devuelve el pid del proceso creado o -1 si no se pudo crear el proceso o -2 si no hay espacio en la tabla de procesos
-    SchedulerADT scheduler = getSchedulerADT(); 
-    if(scheduler == NULL){
-        return -1; 
+uint16_t createProcess(EntryPoint rip, char **argv, int argc, uint8_t priority, uint16_t fileDescriptors[]) {
+
+    if (rip == NULL || argv == NULL || argc < 0 || fileDescriptors == NULL) {
+        return -1;
     }
 
-    if(scheduler->processCount >= MAX_PROCESOS){
-        return -2; //excedido de procesos
+    SchedulerADT scheduler = getSchedulerADT();
+    if (scheduler == NULL) {
+        return -1;
     }
 
-    //Buscamos el primer proceso muerto para usar su pid
-    int i = 0; 
-    while(scheduler->process[i].status != DEAD){ 
+    if (scheduler->processCount >= MAX_PROCESOS) {
+        return -2; // excedido de procesos
+    }
+
+    // Buscamos el primer proceso muerto para usar su pid
+    int i = 0;
+    while (scheduler->process[i].status != DEAD) {
         i++;
     }
 
-    uint8_t pid = i; 
-    Process* p = &scheduler->process[pid];
+    uint8_t pid = i;
 
-    if(initProcess(p, pid, rip, args, argc, fileDescriptors)==-1){
-        free(p);
+    if (pid < 1) {
+        scheduler->process[pid].status = BLOCKED; // Si es la shell arranca bloqueado
+    } else {
+        scheduler->process[pid].status = READY;
+    }
+    scheduler->process[pid].PID = pid;
+    scheduler->process[pid].priority = priority;
+    scheduler->process[pid].quantum = MIN_QUANTUM;
+    scheduler->process[pid].foreground = 0;
+    scheduler->process[pid].rip = rip;
+    scheduler->process[pid].argc = argc;
+
+    scheduler->process[pid].name = malloc(strlen(argv[0]) + 1);
+    if (scheduler->process[pid].name == NULL) {
         return -1;
     }
-    
-    if(scheduler->readyList->first==NULL){
-        insertFirst(scheduler->readyList, &pid);
+    strcpy(scheduler->process[pid].name, argv[0]);
+
+    scheduler->process[pid].argv = allocArgv(&scheduler->process[pid], argv, argc);
+    if (scheduler->process[pid].argv == NULL) {
+        free((void*)scheduler->process[pid].name);
+        return -1;
     }
-    else{
+
+    // Reserva memoria para el stack y alinea el basePointer a 16 bytes
+    scheduler->process[pid].stack = (uint64_t)malloc(STACK_SIZE + 16);
+    if (scheduler->process[pid].stack == 0) {
+        free((void*)scheduler->process[pid].argv);
+        free((void*)scheduler->process[pid].name);
+        return -1;
+    }
+    scheduler->process[pid].basePointer = (scheduler->process[pid].stack + STACK_SIZE) & ~0xFUL;
+
+    // Usa la función asm para setear el stack frame inicial
+    scheduler->process[pid].rsp = (void*)setUpStackFrame(
+        scheduler->process[pid].basePointer,
+        (uint64_t)scheduler->process[pid].rip,
+        scheduler->process[pid].argc,
+        scheduler->process[pid].argv
+    );
+
+    for (int i = 0; i < CANT_FILE_DESCRIPTORS; i++) {
+        scheduler->process[pid].fileDescriptors[i] = fileDescriptors[i];
+    }
+
+    if (scheduler->readyList->first == NULL) {
+        insertFirst(scheduler->readyList, &pid);
+    } else {
         insertLast(scheduler->readyList, &pid);
     }
 
     scheduler->processCount++;
 
-    return pid; 
-}  
+    return pid;
+}
 
 
 uint16_t getPid(){

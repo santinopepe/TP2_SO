@@ -4,6 +4,8 @@
 #include <lib.h>
 #include <scheduler.h>
 
+static void * SchedulerPointer = NULL;  
+
 static int strlen(const char *str){ //esto Hay que cambiarlo
     int len = 0;
     while(str[len] != '\0'){
@@ -30,13 +32,11 @@ static void strcpy(char dest[], const char source[])
     return;
 }
 
+char **allocArgv(Process *p, char **argv, int argc);
 
-static char **allocArgv(Process *p, char **argv, int argc);
-
-
-
+/*
 uint8_t initProcess(Process *process, uint16_t pid, uint64_t rip, char **args, int argc, uint16_t fileDescriptors[]){
-    if(pid > 1){ 
+    if(pid < 1){ 
         process->status = BLOCKED; //Si es la shell arranca bloqueado
     }
     else{
@@ -52,7 +52,7 @@ uint8_t initProcess(Process *process, uint16_t pid, uint64_t rip, char **args, i
     if(process->name==NULL){
         return -1;
     }
-    process->argv = allocArgv(process, process->argv, argc);
+    process->argv = allocArgv(process, args, argc);
     strcpy(process->name, args[0]);
 
     if(process->argv==NULL){
@@ -74,30 +74,30 @@ uint8_t initProcess(Process *process, uint16_t pid, uint64_t rip, char **args, i
     }
 
     return 0;
-}
+} */
 
-static char **allocArgv(Process *p, char **argv, int argc){
-    char **newArgv = malloc((argc+1) * sizeof(char*));
-    if(newArgv == NULL){
-        return NULL;
-    }
-
-    for(int i=0; i<argc; i++){
-        newArgv[i] = malloc(strlen(argv[i])+1);
-        
-        if(newArgv[i] == NULL){
-            for(int j=0; j<1; j++){
-                free(newArgv[j]);
-            }
-            free(newArgv);
+    char **allocArgv(Process *p, char **argv, int argc){
+        char **newArgv = malloc((argc+1) * sizeof(char*));
+        if(newArgv == NULL){
             return NULL;
         }
-        strcpy(newArgv[i], argv[i]);
-    }
 
-    newArgv[argc] = NULL;
-    return newArgv;
-}
+        for(int i=0; i<argc; i++){
+            newArgv[i] = malloc(strlen(argv[i])+1);
+            
+            if(newArgv[i] == NULL){
+                for(int j=0; j<1; j++){
+                    free(newArgv[j]);
+                }
+                free(newArgv);
+                return NULL;
+            }
+            strcpy(newArgv[i], argv[i]);
+        }
+
+        newArgv[argc] = NULL;
+        return newArgv;
+    }
 
 void freeProcess(Process *process){
     if(process == NULL){
