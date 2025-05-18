@@ -1,4 +1,4 @@
-global setUpStackFrame
+GLOBAL setUpStackFrame
 
 section .text
 

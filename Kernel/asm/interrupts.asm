@@ -164,7 +164,7 @@ picSlaveMask:
 
 ;8254 Timer (Timer Tick)
 _irq00Handler:
-	pushstate 
+	pushStateNoRAX 
 
 	mov rdi, 0
 	call irqDispatcher
@@ -176,7 +176,7 @@ _irq00Handler:
 	mov al, 20h
 	out 20h, al
 
-	popState
+	popStateNoRAX
 	iretq
 
 ;Keyboard
