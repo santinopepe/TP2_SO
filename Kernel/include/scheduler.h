@@ -26,9 +26,9 @@ int setStatus(uint16_t pid, ProcessStatus status);
 
 SchedulerADT createScheduler();
 
-void unblockProcess(uint16_t pid);
+int unblockProcess(uint16_t pid);
 
-void blockProcess();
+int blockProcess();
 
 Process *findProcess(uint16_t pid); //devuelve el proceso con el pid pasado por parametro o NULL si no existe el proceso
 

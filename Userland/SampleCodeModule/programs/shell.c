@@ -9,6 +9,7 @@
 #include <stddef.h>
 #include <libasm.h>
 #include <cmdParserADT.h>
+#include <tests.h>
 
 /* Enum para la cantidad de argumentos recibidos */
 typedef enum {NO_PARAMS = 0, SINGLE_PARAM, DUAL_PARAM} functionType;    
@@ -58,6 +59,8 @@ static int setStatusWrapper(uint16_t pid, ProcessStatus status);
 
 static int readLineWithCursor(char *buffer, int max_len); 
 static void executePipedCommands(CommandADT command); 
+static void test_processesWrapper(int argc, char *argv[]); 
+static void test_mmWrapper(int argc, char *argv[]);
 
 static Command commands[] = {
 {"help", "Listado de comandos", (CommandFunction) help},
@@ -75,7 +78,9 @@ static Command commands[] = {
 {"set-status", "Cambia el estado de un proceso. Uso: set-status <pid> <estado>", (CommandFunction) setStatusWrapper},
 {"block", "Bloquea un proceso. Uso: block <pid>", (CommandFunction) blockProcess},
 {"unblock", "Desbloquea un proceso. Uso: unblock <pid>", (CommandFunction) unblockProcess},
-{"kill", "Elimina un proceso. Uso: kill <pid>", (CommandFunction) kill}
+{"kill", "Elimina un proceso. Uso: kill <pid>", (CommandFunction) kill},
+{"test-processes", "Ejecuta un test de procesos. Uso: test-processes <cantidad>", (CommandFunction) test_processesWrapper},
+{"test-mm", "Ejecuta un test de memoria. Uso: test-mm <max_memory>", (CommandFunction) test_mmWrapper}
 
 
 };
@@ -421,4 +426,18 @@ static void executePipedCommands(CommandADT command) {
     // Restaurar los descriptores de E/S originales de la shell
     current_stdin_fd = shell_original_stdin;
     current_stdout_fd = shell_original_stdout;
+}
+
+
+
+static void test_processesWrapper(int argc, char *argv[]) {
+    uint16_t fileDescriptors[3] = {0, 1, 2}; // STDIN, STDOUT, STDERR
+    createProcess((uint64_t) test_processes , argv, argc, atoi(argv[1]), fileDescriptors);
+    return; 
+}
+
+static void test_mmWrapper(int argc, char *argv[]) {
+    uint16_t fileDescriptors[3] = {0, 1, 2}; // STDIN, STDOUT, STDERR
+    createProcess((uint64_t) test_mm , argv, argc, 1, NULL);
+    return; 
 }

@@ -288,10 +288,10 @@ void processSwitch() {
     scheduler->process[scheduler->currentPID].status = RUNNING;
 }
 
-void blockProcess(){ //bloquea el proceso, lo saca de la lista de listos y lo agrega a la lista de bloqueados
+int blockProcess(){ //bloquea el proceso, lo saca de la lista de listos y lo agrega a la lista de bloqueados
     SchedulerADT scheduler = getSchedulerADT();
     if(scheduler==NULL){
-        return; 
+        return -1 ; 
     }
     uint16_t pid = scheduler->currentPID;
     
@@ -300,14 +300,15 @@ void blockProcess(){ //bloquea el proceso, lo saca de la lista de listos y lo ag
         scheduler->process[scheduler->currentPID].status = BLOCKED; 
         processSwitch();
         removeElement(scheduler->readyList, &scheduler->process[pid].PID);
-
         insertLast(scheduler->blockedList, &scheduler->process[pid].PID); //agrega el proceso a la lista de bloqueados
+
     } else if (scheduler->process[scheduler->currentPID].status == READY){
         scheduler->process[scheduler->currentPID].status = BLOCKED; 
         removeElement(scheduler->readyList, &scheduler->process[pid].PID);
-
         insertLast(scheduler->blockedList, &scheduler->process[pid].PID); //agrega el proceso a la lista de bloqueados
     }
+
+    return 0;
        
 }
 
@@ -320,10 +321,10 @@ Process *findProcess(uint16_t pid){
     return &scheduler->process[pid];
 }
 
-void unblockProcess(uint16_t pid){
+int unblockProcess(uint16_t pid){
     SchedulerADT scheduler = getSchedulerADT();
     if(scheduler==NULL){
-        return; 
+        return -1; 
     }
     
     if(scheduler->process[pid].status == BLOCKED){
@@ -338,6 +339,7 @@ void unblockProcess(uint16_t pid){
 
         removeElement(scheduler->blockedList, &scheduler->process[pid].PID); 
     }
+    return 0;
 }
 
 ProcessData *ps(){ //lo ideal aca seria devolver un array con la info de cada p{}roceso para luego imprimirlo haciendo el llamado en userland

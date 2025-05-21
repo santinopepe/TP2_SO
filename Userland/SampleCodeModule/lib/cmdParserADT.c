@@ -92,7 +92,7 @@ CommandADT parseInput(char *input) {
             }
             copiedChars = strcpychar(arg, input + inputIdx, ' ');
             if (copiedChars == 0 || arg == NULL) {
-                freeCommandADT(arg);
+                free(arg);
                 break;
             }
             currentFunction->argv[currentFunction->argc] = arg;

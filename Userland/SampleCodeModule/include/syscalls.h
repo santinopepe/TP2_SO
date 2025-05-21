@@ -247,13 +247,13 @@ int setStatus(uint16_t pid, ProcessStatus status);
  * @brief Desbloquea un proceso
  * @param pid: PID del proceso a desbloquear
 */
-void unblockProcess(uint16_t pid);
+int unblockProcess(uint32_t pid);
 
 /**
  * @brief Bloquea un proceso
  * @param pid: PID del proceso a bloquear
 */
-void blockProcess(uint16_t pid);
+int blockProcess(uint32_t pid);
 
 /**
  * @brief Devuelve el PID del proceso actual
