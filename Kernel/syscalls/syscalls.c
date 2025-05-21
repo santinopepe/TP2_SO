@@ -6,26 +6,17 @@
 #include <speaker.h>
 #include <time.h>
 #include <registers.h>
+#include <MemoryManager.h>
+#include <process.h>
+#include <pipeManager.h>
+#include <semaphoresManager.h>
+#include <scheduler.h>
+
 /* File Descriptors*/
 #define STDIN 0
 #define STDOUT 1
 #define STDERR 2
 #define KBDIN 3
-
-/* IDs de syscalls */
-#define READ 0
-#define WRITE 1
-#define CLEAR 2
-#define SECONDS 3
-#define GET_REGISTER_ARRAY 4
-#define SET_FONT_SIZE 5
-#define GET_RESOLUTION 6
-#define DRAW_RECT 7
-#define GET_TICKS 8
-#define GET_MEMORY 9
-#define PLAY_SOUND 10
-#define SET_FONT_COLOR 11
-#define GET_FONT_COLOR 12
 
 static uint8_t syscall_read(uint32_t fd);
 static void syscall_write(uint32_t fd, char c);
@@ -41,44 +32,53 @@ static void syscall_playSound(uint64_t frequency, uint64_t ticks);
 static void syscall_setFontColor(uint8_t r, uint8_t g, uint8_t b);
 static uint32_t syscall_getFontColor();
 
+typedef uint64_t (*Syscall)(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t); 
 
 uint64_t syscallDispatcher(uint64_t nr, uint64_t arg0, uint64_t arg1, uint64_t arg2, uint64_t arg3, uint64_t arg4, uint64_t arg5) {
-	switch (nr) {
-        case READ:
-            return syscall_read((uint32_t)arg0);
-		case WRITE:
-			syscall_write((uint32_t)arg0, (char)arg1);
-            break;
-        case CLEAR:
-            syscall_clear();
-            break;
-        case SECONDS:
-            return syscall_seconds();
-        case GET_REGISTER_ARRAY:
-            return (uint64_t) syscall_registerArray((uint64_t *) arg0);
-        case SET_FONT_SIZE:
-            syscall_fontSize((uint8_t)arg0);
-            break;
-        case GET_RESOLUTION:
-            return syscall_resolution();
-        case DRAW_RECT:
-            syscall_drawRect((uint16_t)arg0, (uint16_t)arg1, (uint16_t)arg2, (uint16_t)arg3, (uint32_t)arg4);
-            break;
-        case GET_TICKS:
-            return syscall_getTicks();
-        case GET_MEMORY:
-            syscall_getMemory((uint64_t) arg0, (uint8_t *) arg1);
-            break;
-        case PLAY_SOUND:
-            syscall_playSound(arg0, arg1);
-            break;
-        case SET_FONT_COLOR:
-            syscall_setFontColor((uint8_t) arg0, (uint8_t) arg1, (uint8_t) arg2);
-            break;
-        case GET_FONT_COLOR:
-            return syscall_getFontColor();
-	}
-	return 0;
+    static Syscall syscalls[] = {
+        (Syscall)syscall_read,
+        (Syscall)syscall_write,
+        (Syscall)syscall_clear,
+        (Syscall)syscall_seconds,
+        (Syscall)syscall_registerArray,
+        (Syscall)syscall_fontSize,
+        (Syscall)syscall_resolution,
+        (Syscall)syscall_drawRect,
+        (Syscall)syscall_getTicks,
+        (Syscall)syscall_getMemory,
+        (Syscall)syscall_playSound,
+        (Syscall)syscall_setFontColor,
+        (Syscall)syscall_getFontColor,
+        
+        (Syscall)malloc,
+        (Syscall)free,
+        (Syscall)getMemoryInfo,
+        
+        (Syscall)sem_open,
+        (Syscall)sem_close,
+        (Syscall)sem_wait,
+        (Syscall)sem_post,
+        (Syscall)create_sem,
+
+        (Syscall)openPipe,
+        (Syscall)closePipe,
+        (Syscall)writePipe,
+        (Syscall)readPipe,
+
+        (Syscall)createProcess,
+        (Syscall)killProcess,
+        (Syscall)setPriority,
+        (Syscall)setStatus,
+        (Syscall)unblockProcess,
+        (Syscall)blockProcess,
+        (Syscall)yield,
+        (Syscall)getPid,
+        (Syscall)waitForChildren
+
+
+
+    };
+	return syscalls[nr](arg0, arg1, arg2, arg3, arg4, arg5);
 }
 
 // Read char

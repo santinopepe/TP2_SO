@@ -4,6 +4,7 @@
 #include <memoryInfo.h>
 #include <lib.h>
 #include <video.h>
+#include <string.h>
 
 #define FREE 0
 #define USED 1
@@ -24,21 +25,15 @@ static MemoryManagerADT getMemoryManagerInternal() {
     return (MemoryManagerADT)firstAddress;
 }
 
-void strcpy(char dest[], const char source[]) {
-    int i = 0;
-    while ((dest[i] = source[i]) != '\0') {
-        i++;
-    }
-}
 
 void createMemoryManager(void *startMem, uint64_t totalSize) {
 
     if ((uint64_t)startMem % 8 != 0) {
-      return NULL;
+      return ;
     }
 
     if (totalSize < sizeof(MemoryManagerCDT) + sizeof(MemoryInfoCDT)) {
-       return NULL;
+       return ;
     }
 
     firstAddress = startMem;
@@ -55,7 +50,7 @@ void createMemoryManager(void *startMem, uint64_t totalSize) {
     uint64_t numPages = bitmapSize * 8;
 
     if (numPages == 0) {
-        return NULL;
+        return;
     }
 
     memoryManager->memoryInfo->totalPages = numPages;
@@ -73,7 +68,6 @@ void createMemoryManager(void *startMem, uint64_t totalSize) {
     memoryManager->memoryInfo->usedMemory = 0;
 
     memset(memoryManager->bitmap, 0, bitmapSize);
-    return memoryManager;
 }
 
 void *malloc(const size_t memoryToAllocate) {

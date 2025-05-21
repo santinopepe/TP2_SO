@@ -77,6 +77,21 @@ uint8_t openPipe(uint16_t pid, uint8_t mode)
   
 }
 
+uint8_t closePipe(uint8_t fd)
+{
+
+    if (fd > MAX_PIPES || pipeManager->pipes[fd].fd == -1)
+    {
+        return 0;
+    }
+
+    pipeManager->pipes[fd].fd = -1;
+    pipeManager->pipes[fd].inputPID = -1;
+    pipeManager->pipes[fd].outputPID = -1;
+    pipeManager->pipeCount--;
+
+    return 1;
+}
 
 uint8_t writePipe(uint8_t fd, char *buffer, uint8_t size)
 {

@@ -14,3 +14,6 @@
 .bash_history
 
 *.elf
+
+*.gdb_history
+*.gdbinit

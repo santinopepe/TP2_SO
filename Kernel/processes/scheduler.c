@@ -134,7 +134,7 @@ int setPriority(uint16_t pid, uint8_t priority) {
         return -1;
     }
     scheduler->process[pid].priority = priority;
-    scheduler->process[pid].quantum = MIN_QUANTUM * priority;
+    scheduler->process[pid].quantum = MIN_QUANTUM * (1 + priority);
     return 0;
 }
 
@@ -168,7 +168,6 @@ void yield(){ //funcion para renuciar al cpu, para ceder su espacio a otro proce
 // Los parametros de la funcion a ejecutar
 
 uint16_t createProcess(EntryPoint rip, char **argv, int argc, uint8_t priority, uint16_t fileDescriptors[]) {
-
     if (rip == NULL || argv == NULL || argc < 0 || fileDescriptors == NULL) {
         return -1;
     }
@@ -190,14 +189,11 @@ uint16_t createProcess(EntryPoint rip, char **argv, int argc, uint8_t priority, 
 
     uint8_t pid = i;
 
-    if (pid < 1) {
-        scheduler->process[pid].status = BLOCKED; // Si es la shell arranca bloqueado
-    } else {
-        scheduler->process[pid].status = READY;
-    }
+    scheduler->process[pid].status = (pid == 0) ? RUNNING : READY;
     scheduler->process[pid].PID = pid;
     scheduler->process[pid].priority = priority;
-    scheduler->process[pid].quantum = MIN_QUANTUM;
+    scheduler->process[pid].quantum = MIN_QUANTUM* (1 + priority);
+    scheduler->quantum = (pid == 0) ? scheduler->process[pid].quantum: scheduler->quantum;
     scheduler->process[pid].foreground = 0;
     scheduler->process[pid].rip = rip;
     scheduler->process[pid].argc = argc;
@@ -222,7 +218,19 @@ uint16_t createProcess(EntryPoint rip, char **argv, int argc, uint8_t priority, 
         return -1;
     }
     scheduler->process[pid].basePointer = (scheduler->process[pid].stack + STACK_SIZE) & ~0xFUL;
+for (int i = 0; i < CANT_FILE_DESCRIPTORS; i++) {
+        scheduler->process[pid].fileDescriptors[i] = fileDescriptors[i];
+    }
 
+    if (scheduler->readyList->first == NULL) {
+        printf("Insertando en la lista de listos\n");
+        insertFirst(scheduler->readyList, &scheduler->process[pid].PID);
+    } else {
+        printf("Insertando en la lista de listos\n");
+        insertLast(scheduler->readyList, &scheduler->process[pid].PID);
+    }
+
+    scheduler->processCount++;
     // Usa la función asm para setear el stack frame inicial
     scheduler->process[pid].rsp = (void*)setUpStackFrame(
         scheduler->process[pid].basePointer,
@@ -231,17 +239,7 @@ uint16_t createProcess(EntryPoint rip, char **argv, int argc, uint8_t priority, 
         scheduler->process[pid].argv
     );
 
-    for (int i = 0; i < CANT_FILE_DESCRIPTORS; i++) {
-        scheduler->process[pid].fileDescriptors[i] = fileDescriptors[i];
-    }
-
-    if (scheduler->readyList->first == NULL) {
-        insertFirst(scheduler->readyList, &pid);
-    } else {
-        insertLast(scheduler->readyList, &pid);
-    }
-
-    scheduler->processCount++;
+    
 
     return pid;
 }
@@ -382,11 +380,12 @@ void *schedule(void *prevStackPointer) {
 
     // Cambiar al siguiente proceso si el quantum es 0 o el proceso está bloqueado/muerto
     if (scheduler->quantum == 0 || scheduler->process[scheduler->currentPID].status != RUNNING) {
-        processSwitch();
+        processSwitch(); 
+        // Reiniciar quantum para el nuevo proceso
+        scheduler->quantum = scheduler->process[scheduler->currentPID].quantum;
     }
 
-    // Reiniciar quantum para el nuevo proceso
-    scheduler->quantum = scheduler->process[scheduler->currentPID].quantum;
+   
 
     // Verificar que RSP no sea nulo
     if (scheduler->process[scheduler->currentPID].rsp == NULL) {

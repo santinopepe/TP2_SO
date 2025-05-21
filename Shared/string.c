@@ -11,8 +11,9 @@ int strcmp(const char *s1, const char *s2) {
 
 int strlen(const char *str) {
 	int len = 0;
-	while (*(str++) != '\0')
+	while (*(str++) != '\0' && *str != ' ') {
 		len++;
+	}
 	return len;
 }
 
@@ -26,7 +27,7 @@ int strcpychar(char *dest, const char *origin, char limit) {
 		dest[idx] = origin[idx];
 		idx++;
 	}
-	dest[idx] = 0;
+	dest[idx] = '\0';
 	return idx;
 }
 
