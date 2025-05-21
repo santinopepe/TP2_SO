@@ -8,6 +8,11 @@
 
 #define CURSOR_FREQ 10  /* Frecuencia en Ticks del dibujo del cursor*/
 
+#define STDIN 0
+#define STDOUT 1
+#define STDERR 2
+#define KBDIN 3
+#define MAX_CHARS 256
 
 /**
  * @brief Funcion auxiliar para printf y printfc
@@ -102,83 +107,7 @@ void printNChars(char c, int n) {
         putchar(c);
 }
 
-int scanf(char * fmt, ...) {
-    va_list v;
-    va_start(v, fmt);
-    char c;
-    int ticks = getTicks();
-    int cursorTicks = 0;
-    char cursorDrawn = 0;
-    char buffer[MAX_CHARS];
-    uint64_t bIdx = 0;
-    while((c = getchar()) != '\n' && bIdx < MAX_CHARS-1){
-        cursorTicks = getTicks() - ticks;
-         if(cursorTicks > CURSOR_FREQ){
-            ticks = getTicks();
-            cursorTicks = 0;
-            if(cursorDrawn)
-                putchar('\b');
-            else
-                putchar('_');
-            cursorDrawn = !cursorDrawn;
-        }
-        if (c != 0) {
-            if(cursorDrawn){
-                putchar('\b');
-                cursorDrawn = !cursorDrawn;
-            }
-            if (c != '\b'){
-                buffer[bIdx++] = c;
-                putchar(c);
-            }
-            else if(bIdx>0){
-                bIdx--;
-                putchar(c);
-            } else {
-                playSoundLimitReached();
-            }
-        }
-    }
-    if(cursorDrawn)
-        putchar('\b');
-    putchar('\n');
-    buffer[bIdx] = 0;
-    char * fmtPtr = fmt;
-    char * end;
-    bIdx = 0;
 
-    int qtyParams = 0;
-    while (*fmtPtr && buffer[bIdx] && bIdx < MAX_CHARS) {
- 	    if (*fmtPtr == '%') {
-            fmtPtr++;
-            switch (*fmtPtr) {
-                case 'c':
-                    *(char *) va_arg(v, char *) = buffer[bIdx];
-                    end = &buffer[bIdx] + 1;
-                    break;
-                case 'd':
-                    *(int *) va_arg(v, int *) = strtoi(&buffer[bIdx], &end);
-                    break;
-                case 'x':
-                    *(int *) va_arg(v, int *) = strtoh(&buffer[bIdx], &end);
-                    break;
-                case 's':
-                    end = &buffer[bIdx] + strcpychar((char *) va_arg(v, char *), &buffer[bIdx], ' ');
-                    break;
-            }
-            bIdx += end - &buffer[bIdx];
-            qtyParams++;
-        } else if (*fmtPtr == buffer[bIdx]) {
-           bIdx++; 
-        } else {
-            printErr("Error!!!"); 
-        }
-        fmtPtr++;
-    }
-    buffer[bIdx-1] = 0;
-    va_end(v);
-    return qtyParams;
-}
 
 static char * _regNames[] = {"RAX", "RBX", "RCX", "RDX", "RBP", "RDI", "RSI", "R8", "R9", "R10", "R11", "R12", "R13", "R14", "R15"};
 void printRegisters(const uint64_t * rsp) {
