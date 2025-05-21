@@ -3,42 +3,118 @@
 #include <lib.h>
 #include <video.h>
 #include <time.h>
+#include <semaphoresManager.h>
+#include <scheduler.h>
+#include <stdlib.h>
+#include <time.h>
+#include <globals.h>
+#include <MemoryManager.h>
+
 #define BUFFER_CAPACITY 10                      /* Longitud maxima del vector _buffer */
-#define HOTKEY 29                               /* Scancode para el snapshot de registros */
+#define LCTRL 29
+#define LSHIFT 42
+#define C_HEX 0x2E
+#define D_HEX 0x20
+#define R_HEX 0x13
+#define M_HEX 0x32
+#define RELEASED 0x80 /* Mascara para detectar si se solto una tecla */
+#define SHIFTED 0x80
+
+/* Scancode para el snapshot de registros */
 static uint8_t _bufferStart = 0;                /* Indice del comienzo de la cola */
 static char _bufferSize = 0;                    /* Longitud de la cola */
 static uint8_t _buffer[BUFFER_CAPACITY] = {0};  /* Vector ciclico que guarda las teclas 
                                                  * que se van leyendo del teclado */
-static const char charHexMap[256] =             /* Mapa de scancode a ASCII */
-    {   0,  0,  '1',  '2',  '3',  '4',  '5',  '6', '7',  '8',  '9', '0', '-',  '=',  '\b',  ' ',
-        'q',  'w',  'e',  'r',  't',  'y',  'u',  'i', 'o',  'p',  '[', ']',  '\n',  0, 'a', 's',
-        'd',  'f',  'g',  'h',  'j',  'k',  'l',  ';',  '\'',  0,  0,  '\\', 'z',  'x', 'c', 'v',
-        'b',  'n',  'm',  ',',  '.',  '/',  0,  '*', 0,  ' ',  0, 0, 0,  0, 0, 0};
+
+static uint8_t _ctrl = 0;					  /* Flag para detectar si se presiono ctrl */
+static uint8_t _shift = 0;					  /* Flag para detectar si se presiono shift */
+
+static const char charHexMap[] =			  /* Mapa de scancode a ASCII */
+	{0, 0, '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-',
+	 '=', '\b', ' ', 'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p',
+	 '[', ']', '\n', 0, 'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l',
+	 ';', '\'', 0, 0, '\\', 'z', 'x', 'c', 'v', 'b', 'n', 'm', ',',
+	 '.', '/', 0, '*', 0, ' '};
+
+static const char charHexMapShift[] = /* Mapa de scancode con shift a ASCII */
+	{0, 0, '!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '_',
+	 '+', '\b', ' ', 'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P',
+	 '{', '}', '\n', 0, 'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L',
+	 ';', '"', 0, 0, '|', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', '<',
+	 '>', '?', 0, '*', 0, ' '};
 
 /**
  * @brief  Obtiene el indice del elemento en la cola dado un corrimiento 
  * @param  offset: corrimiento
  * @return Indice del elemento en la cola
  */
+
+static void writeKey(uint8_t key);
+
 static int getBufferIndex(int offset){
     return (_bufferStart+offset)%(BUFFER_CAPACITY);
 }
 
+void initializeKeyboardDriver(){
+    create_sem(IO_SEM_ID, 0); // Inicializa el semáforo de IO
+}
+
 void keyboardHandler(){
     uint8_t key = getKeyPressed();
-    if(_bufferSize < BUFFER_CAPACITY -1){
-        if(!(key & 0x80)){
-            if (key == HOTKEY) {
-                saveRegisters();
-                return;
-            }
-            _buffer[getBufferIndex(_bufferSize)] = key;
-            _bufferSize++;
+    if(!(key & RELEASED)){ // Si la tecla no fue liberada
+        if(key==LCTRL){
+            _ctrl = 1;
         }
+        else if(key==LSHIFT){
+            _shift=1;
+        }
+        else if(_ctrl){
+            if(key==C_HEX){ //ctrl+C
+                _bufferStart = _bufferSize = 0;
+                //killForegroundProcess();
+                printf("ctrl+c clicked\n");
+            }
+            else if(key==R_HEX){ //ctrl+R
+                saveRegisters();
+            }
+            else if(key==D_HEX && _bufferSize < BUFFER_CAPACITY -1){ //ctrl+D
+                writeKey(EOF);
+            }
+            else if(key==M_HEX){ //ctrl+M
+                MemoryInfoCDT *memInfo = getMemoryInfo();
+                printf("%s MemoryManager:\nTotalBlocks: %d  UsedBlocks: %d  FreeBlocks: %d  TotalMemory: %d  FreeMemory: %d  UsedMemory: %d\n",
+                       memInfo->memoryType, memInfo->totalPages,
+                       memInfo->usedPages, memInfo->freePages, memInfo->totalMemory,
+                       memInfo->usedMemory, memInfo->freeMemory);
+                free(memInfo);
+            }
+        }
+        else if(_bufferSize < BUFFER_CAPACITY -1){ // Si el buffer no esta lleno
+            if (_shift) {
+                key = SHIFTED | key; // Si se presiono shift, se agrega el flag
+            }
+            writeKey(key); // Se escribe la tecla en el buffer
+        }
+    }
+    else{
+            if(key == (LCTRL | RELEASED)){
+                _ctrl = 0;
+            }
+            else if(key == (LSHIFT | RELEASED)){
+                _shift = 0;
+            }
     }
 }
 
-char getScancode() {
+static void writeKey(uint8_t key){
+    if (((key & 0x7F) < sizeof(charHexMap) && charHexMap[key & 0x7F] != 0) || (int) key == EOF) {
+		_buffer[getBufferIndex(_bufferSize)] = key;
+		_bufferSize++;
+		sem_post(IO_SEM_ID);
+	}
+}
+
+uint8_t getScancode() {
     if(_bufferSize > 0){
         char c = _buffer[getBufferIndex(0)];
         _bufferStart = getBufferIndex(1);
@@ -48,6 +124,15 @@ char getScancode() {
     return 0;
 }
 
-char getAscii(){
-    return charHexMap[(int) getScancode()];
+uint8_t getAscii(){
+    sem_wait(IO_SEM_ID);
+    int scanCode = getScancode();
+    if(scanCode == EOF){
+        return EOF;
+    }
+    if(SHIFTED & scanCode){
+        scanCode &= 0x7F;
+        return charHexMapShift[(int) scanCode];
+    }
+    return charHexMap[(int) scanCode];
 }

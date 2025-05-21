@@ -16,7 +16,7 @@ int _start() {
 
 }
 
-
+/*
 void * memset(void * destiation, int32_t c, uint64_t length) {
 	uint8_t chr = (uint8_t)c;
 	char * dst = (char*)destiation;
@@ -25,4 +25,4 @@ void * memset(void * destiation, int32_t c, uint64_t length) {
 		dst[length] = chr;
 
 	return destiation;
-}
+}*/

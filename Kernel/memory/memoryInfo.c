@@ -2,6 +2,8 @@
 #include <MemoryManager.h>
 #include <stdint.h>
 #include <string.h>
+#include <globals.h>
+
 
 void initMemoryInfo(MemoryInfoADT memoryInfo) {
     if (memoryInfo) {

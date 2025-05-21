@@ -36,4 +36,6 @@ uint16_t getPid();
 
 void *schedule(void * prevStackPointer);
 
+void killForegroundProcess();
+
 #endif 

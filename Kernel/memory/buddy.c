@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <lib.h>
+#include <string.h>
 
 #define FREE 0
 #define ALLOCATED 1
@@ -41,24 +42,6 @@ static int is_block_in_heap(uintptr_t block_addr, uintptr_t heap_start, uint64_t
 static MemoryBlock *merge_blocks(MemoryManagerADT memoryManager, MemoryBlock *block);
 
 static MemoryBlock *split_block(MemoryManagerADT memoryManager, MemoryBlock *block_to_split);
-
-// ESTO habria que cambiarlo
-void strcpy(char dest[], const char source[])
-{
-    int i = 0;
-    while (1)
-    {
-        dest[i] = source[i];
-
-        if (dest[i] == '\0')
-        {
-            break;
-        }
-
-        i++;
-    }
-    return;
-}
 
 static uint8_t log2_floor(uint64_t n)
 {
@@ -229,11 +212,11 @@ static MemoryBlock *split_block(MemoryManagerADT memoryManager, MemoryBlock *blo
     return block_to_split;
 }
 
-MemoryManagerADT createMemoryManager(void *startMem, uint64_t totalSize)
+void createMemoryManager(void *startMem, uint64_t totalSize)
 {
     if (totalSize < sizeof(MemoryManagerCDT) + sizeof(MemoryInfoCDT) + (1ULL << MIN_ORDER))
     {
-        return NULL;
+        return;
     }
 
     MemoryManagerADT memoryManager = (MemoryManagerADT)startMem;
@@ -288,7 +271,6 @@ MemoryManagerADT createMemoryManager(void *startMem, uint64_t totalSize)
     memoryManager->memoryInfo->totalMemory = aligned_heap_size; 
     memoryManager->memoryInfo->freeMemory = aligned_heap_size;
 
-    return memoryManager;
 }
 
 void *malloc(const size_t memoryToAllocate)
@@ -396,4 +378,9 @@ void free(void *memoryToFree)
     }
     memoryManager->memoryBlockMap[current_block->order] = current_block;
     current_block->prev = NULL;
+}
+
+MemoryInfoADT getMemoryInfo(){
+    MemoryManagerADT MemoryManager = getMemoryManagerInternal();
+    return MemoryManager->memoryInfo;
 }

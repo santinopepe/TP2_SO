@@ -31,7 +31,7 @@ void strcpy(char dest[], const char source[]) {
     }
 }
 
-MemoryManagerADT createMemoryManager(void *startMem, uint64_t totalSize) {
+void createMemoryManager(void *startMem, uint64_t totalSize) {
 
     if ((uint64_t)startMem % 8 != 0) {
       return NULL;
@@ -158,4 +158,9 @@ void free(void *const memoryToFree) {
     memoryManager->memoryInfo->freeMemory += pagesFreed * PAGE_SIZE;
 
    
+}
+
+MemoryInfoADT getMemoryInfo(){
+    MemoryManagerADT MemoryManager = getMemoryManagerInternal();
+    return MemoryManager->memoryInfo;
 }

@@ -1,6 +1,8 @@
 #ifndef _FONT_H_
 #define _FONT_H_
 
+#include <stdint.h>
+
 #define FIRST_CHAR 33
 #define LAST_CHAR 126
 

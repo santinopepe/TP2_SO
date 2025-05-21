@@ -2,6 +2,7 @@
 
 static unsigned int log(uint64_t n, int base);
 
+/*
 void * memset(void * destination, int32_t c, uint64_t length)
 {
 	uint8_t chr = (uint8_t)c;
@@ -11,7 +12,7 @@ void * memset(void * destination, int32_t c, uint64_t length)
 		dst[length] = chr;
 
 	return destination;
-}
+}*/
 
 void * memcpy(void * destination, const void * source, uint64_t length)
 {
@@ -50,7 +51,7 @@ void * memcpy(void * destination, const void * source, uint64_t length)
 
 	return destination;
 }
-
+/*
 unsigned int log(uint64_t n, int base) {
     unsigned int count = 1;
     while (n /= base)
@@ -70,13 +71,13 @@ int itoa(uint64_t n, char* buffer, int base)
     unsigned int len = 0;
     int i = 0;
 	// Mover a otra funcion si se quiere implementar un itoa que soporte negativos
-    /*if (n < 0 && base == 10)
+    if (n < 0 && base == 10)
     {
         n = -n;
         buffer[i] = '-';
         len++;
         i++;
-    }*/
+    }
  
     len += log(n, base);
     while (n != 0)
@@ -99,3 +100,4 @@ int strtoi(char* s, char ** end) {
     *end = s; 
     return num;
 }
+*/

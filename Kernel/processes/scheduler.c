@@ -6,33 +6,14 @@
 #include <stddef.h>
 #include <doubleLinkedListADT.h>
 #include <video.h>
+#include <stdlib.h>
+#include <string.h>
 
 #define MAX_PROCESOS 1000
 #define STACK_SIZE 0x1000 //4kb
 #define MIN_QUANTUM 10 
 
 static void * SchedulerPointer = NULL;  
-
-static int strlen(const char *str){ //esto Hay que cambiarlo
-    int len = 0;
-    while(str[len] != '\0'){
-        len++;
-    }
-    return len;
-}
-
-// ESTO habria que cambiarlo
-static void strcpy(char *dest, const char *source) {
-    if (dest == NULL || source == NULL) {
-        return;
-    }
-    int i = 0;
-    while (source[i] != '\0') {
-        dest[i] = source[i];
-        i++;
-    }
-    dest[i] = '\0';
-}
 
 typedef struct SchedulerCDT{
     Process process[MAX_PROCESOS]; //array de procesos, cada posicion es el pid del proceso
@@ -41,6 +22,7 @@ typedef struct SchedulerCDT{
     DoubleLinkedListADT blockedList;
     uint8_t currentPID; 
     uint64_t quantum; 
+    uint8_t killFgProcess; //se enciende en uno si se quiere matar al proceso en foreground
 }SchedulerCDT;
 
 SchedulerADT getSchedulerADT(){
@@ -61,6 +43,7 @@ SchedulerADT createScheduler(){
     scheduler->processCount = 0;
     scheduler->quantum = 0;
     scheduler->currentPID = 0; 
+    scheduler->killFgProcess = 0; 
 
     for(int i = 0; i < MAX_PROCESOS; i++){
         scheduler->process[i].status = DEAD;
@@ -80,6 +63,14 @@ SchedulerADT createScheduler(){
     }
     return scheduler;
 }
+
+void killForegroundProcess(){
+    SchedulerADT scheduler = getSchedulerADT();
+    if(scheduler == NULL){
+        return; 
+    }
+    scheduler->killFgProcess = 1;
+}   
 
 int killProcess(uint16_t pid) {
     SchedulerADT scheduler = getSchedulerADT();
