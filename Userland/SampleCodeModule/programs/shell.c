@@ -42,10 +42,10 @@ typedef struct {
 } Command;
 
 static void help();
-static void man(char * command);
+static void man(int argc, char *argv[]);
 static void printInfoReg();
 static void time();
-static int div(char * num, char * div);
+static int div(int argc, char *argv[]);
 static void tron();
 static void tronZen();
 static void fontSize(int argc, char *argv[]);
@@ -144,8 +144,12 @@ static void help(int argc, char *argv[]) {
         printf("%s: %s\r\n", commands[i].name, commands[i].description);
 }
 
-static int div(char * num, char * div) {
-    printf("%s/%s=%d\r\n", num, div, atoi(num)/atoi(div));
+static int div(int argc, char *argv[]) {
+    if (argc != 3){
+        printErr(WRONG_PARAMS);
+        return 1;
+    }
+    printf("%s/%s=%d\r\n", argv[0], argv[1], atoi(argv[0])/atoi(argv[1]));
     return 1;
 }
 
@@ -203,8 +207,9 @@ static void printInfoReg() {
     
 }
 
-static void man(char * command){
-    int idx = getCommandIndex(command);
+static void man(int argc, char *argv[]) {
+    int idx = getCommandIndex(argv[0]);
+    printf("index %d\n", idx);
     if (idx != -1)
         printf("%s\n", usages[idx]);
     else
@@ -391,7 +396,6 @@ static void executePipedCommands(CommandADT command) {
             continue; 
         }
         
-        printf("Cantidad de argumentos: %d\n",argc);
         commands[cmd_index_in_shell].f(argc, argv);
 
         

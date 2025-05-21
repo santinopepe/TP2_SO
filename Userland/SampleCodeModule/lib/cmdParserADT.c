@@ -34,7 +34,7 @@ typedef struct CommandCDT * CommandADT;
 CommandADT parseInput(char *input) {
     CommandADT command = (CommandADT) malloc(sizeof(CommandCDT));
     if (command == NULL) {
-        printf("Error: no se pudo reservar memoria para el comando.\n");
+  
         return NULL; 
     }
     command->qtyPrograms = 0;
@@ -84,7 +84,8 @@ CommandADT parseInput(char *input) {
                 break;
             }
 
-            char *arg = malloc(strlen(input + inputIdx) * sizeof(char));
+            char *arg = malloc(strlen(input + inputIdx) + 1);
+          
             if (arg == NULL) {
                 freeCommandADT(command);
                 return NULL;
