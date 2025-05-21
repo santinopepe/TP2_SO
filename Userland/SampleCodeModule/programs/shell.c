@@ -160,9 +160,9 @@ static void fontSize(int argc, char *argv[]) {
         printErr(INVALID_FONT_SIZE);
         return;
     }
-    int s = atoi(argv[1]);
+    int s = atoi(argv[0]);
     if(s >= MIN_FONT_SIZE && s <= MAX_FONT_SIZE)
-        setFontSize((uint8_t)atoi(argv[1]));
+        setFontSize((uint8_t)atoi(argv[0]));
     else{
         printErr(INVALID_FONT_SIZE);
         puts(CHECK_MAN_FONT);
@@ -391,6 +391,7 @@ static void executePipedCommands(CommandADT command) {
             continue; 
         }
         
+        printf("Cantidad de argumentos: %d\n",argc);
         commands[cmd_index_in_shell].f(argc, argv);
 
         

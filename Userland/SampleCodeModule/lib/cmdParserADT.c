@@ -48,18 +48,16 @@ CommandADT parseInput(char *input) {
         }
 
         Function *currentFunction = &(command->commands[command->qtyPrograms]);
-        currentFunction->name = NULL;  
+        currentFunction->name = malloc(strlen(input + inputIdx) * sizeof(char));  
         currentFunction->argc = 0;
         currentFunction->argv = NULL; 
         currentFunction->background = 0;
 
-    
+        
         int copiedChars = strcpychar((currentFunction->name), input + inputIdx, ' ');
 
-        //Aca deberia haber || currentFunction->name == NULL
-        if (copiedChars == 0 ) {
+        if (copiedChars == 0  || currentFunction->name == NULL) {
             freeCommandADT(command);
-            printf("Error: no se pudo copiar el nombre del comando.\n");
             return NULL;
         }
         inputIdx += copiedChars;
@@ -86,9 +84,14 @@ CommandADT parseInput(char *input) {
                 break;
             }
 
-            char *arg = NULL;
+            char *arg = malloc(strlen(input + inputIdx) * sizeof(char));
+            if (arg == NULL) {
+                freeCommandADT(command);
+                return NULL;
+            }
             copiedChars = strcpychar(arg, input + inputIdx, ' ');
             if (copiedChars == 0 || arg == NULL) {
+                freeCommandADT(arg);
                 break;
             }
             currentFunction->argv[currentFunction->argc] = arg;
@@ -154,7 +157,7 @@ int getCommandArgc(CommandADT cmd, int index) {
     if (cmd == NULL || index < 0 || index >= cmd->qtyPrograms) {
         return -1;
     }
-    return cmd->commands[index].argc;
+    return cmd->commands[index].argc + 1;
 }
 char ** getCommandArgv(CommandADT cmd, int index) {
     if (cmd == NULL || index < 0 || index >= cmd->qtyPrograms) {
