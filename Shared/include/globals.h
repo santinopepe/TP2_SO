@@ -3,6 +3,10 @@
 
 #include <stdint.h>
 
+#define STDIN 0 
+#define STDOUT 1 
+#define STDERR 2 
+
 typedef struct MemoryInfoCDT{
     uint64_t totalMemory;
     uint64_t freeMemory;

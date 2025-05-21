@@ -8,10 +8,8 @@
 #include <MemoryManager.h>
 #include <scheduler.h>
 #include <process.h>
+#include <globals.h>
 
-#define STDIN 0 
-#define STDOUT 1 
-#define STDERR 2 
 
 extern uint8_t text;
 extern uint8_t rodata;
