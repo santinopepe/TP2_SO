@@ -396,5 +396,12 @@ void *schedule(void *prevStackPointer) {
         return schedule(prevStackPointer); // Intentar con el siguiente proceso
     }
 
+    uint16_t currentPID = scheduler->currentPID;
+
+    if(scheduler->killFgProcess && scheduler->process[currentPID].fileDescriptors[STDIN] == STDIN){
+        scheduler->killFgProcess=0;
+        killProcess(currentPID);
+    }
+
     return scheduler->process[scheduler->currentPID].rsp;
 }

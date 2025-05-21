@@ -30,7 +30,7 @@ static uint8_t _ctrl = 0;					  /* Flag para detectar si se presiono ctrl */
 static uint8_t _shift = 0;					  /* Flag para detectar si se presiono shift */
 
 static const char charHexMap[] =			  /* Mapa de scancode a ASCII */
-	{0, 0, '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-',
+	{0, 27, '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-',
 	 '=', '\b', ' ', 'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p',
 	 '[', ']', '\n', 0, 'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l',
 	 ';', '\'', 0, 0, '\\', 'z', 'x', 'c', 'v', 'b', 'n', 'm', ',',
@@ -71,7 +71,7 @@ void keyboardHandler(){
         else if(_ctrl){
             if(key==C_HEX){ //ctrl+C
                 _bufferStart = _bufferSize = 0;
-                //killForegroundProcess();
+                killForegroundProcess();
                 printf("ctrl+c clicked\n");
             }
             else if(key==R_HEX){ //ctrl+R
