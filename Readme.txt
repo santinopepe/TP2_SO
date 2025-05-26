@@ -1,31 +1,83 @@
-x64BareBones is a basic setup to develop operating systems for the Intel 64 bits architecture.
+# Script de Build y Ejecución para el Kernel (SO - ITBA)
 
-The final goal of the project is to provide an entry point for a kernel and the possibility to load extra binary modules separated from the main kernel.
+Este script automatiza el proceso de compilación, limpieza y ejecución del kernel dentro de un contenedor Docker especialmente preparado para el entorno de desarrollo de la materia Sistemas Operativos del ITBA.
 
-Environment setup:
-1- Install the following packages before building the Toolchain and Kernel:
+## Imagen Docker Utilizada
 
-nasm qemu gcc make
+El script utiliza la imagen:
 
-2- Build the Toolchain
+```
+agodio/itba-so-multi-platform:3.0
+```
 
-Execute the following commands on the x64BareBones project directory:
+Esta imagen contiene todas las herramientas necesarias para compilar el kernel y sus herramientas auxiliares.
 
-  user@linux:$ cd Toolchain
-  user@linux:$ make all
+---
 
-3- Build the Kernel
+## ⚙️ Uso del Script
 
-From the x64BareBones project directory run:
+```bash
+./build.sh [opciones]
+```
 
-  user@linux:$ make all
+### Opciones disponibles:
 
-4- Run the kernel
+| Flag              | Descripción                                                                 |
+|-------------------|-----------------------------------------------------------------------------|
+| `--no-run`        | Evita ejecutar el kernel al finalizar la compilación.                      |
+| `--test-mm`       | Compila el kernel con tests de manejo de memoria (`TEST=mm`).              |
+| `--test-list`     | Compila el kernel con tests de listas (`TEST=list`).                       |
+| `--mm=<tipo>`     | Define el tipo de administrador de memoria (`MM_TYPE`) a pasar a `make`.   |
 
-From the x64BareBones project directory run:
+> ⚠️ Los flags pueden combinarse según necesidad.
 
-  user@linux:$ ./run.sh
+---
 
+## ¿Qué hace este script?
 
-Author: Rodrigo Rearden (RowDaBoat)
-Collaborator: Augusto Nizzo McIntosh
+1. **Parsea los argumentos** recibidos y setea los flags correspondientes.
+2. **Define el comando `make`** dinámicamente según los flags usados.
+3. **Ejecuta el proceso completo** de:
+   - `make clean` para `Toolchain` y el proyecto
+   - `make` para `Toolchain` y el proyecto, pasando variables si corresponde
+4. **Ajusta permisos** del archivo de imagen si se usa `--manu`.
+5. **Ejecuta el kernel** usando `./run.sh`, a menos que se haya pasado `--no-run`.
+
+---
+
+##  Ejemplos de uso
+
+### Compilar y ejecutar normalmente:
+```bash
+./build.sh
+```
+
+### Compilar sin ejecutar:
+```bash
+./build.sh --no-run
+```
+
+### Compilar con test de memoria y tipo de MM personalizado:
+```bash
+./build.sh --test-mm --mm=buddy
+```
+---
+
+##  Requisitos
+
+- Docker instalado y funcionando.
+- El proyecto debe estar ubicado en el mismo directorio que el script.
+- `run.sh` debe estar presente para ejecutar el kernel.
+
+---
+
+##  Notas
+
+- El directorio del proyecto dentro del contenedor está fijado en `/root`.
+- Este script utiliza el flag `--privileged` para permitir acceso extendido a Docker.
+
+---
+
+## GDB
+- Para usar GDB deben instalar gdb-multiarch
+
