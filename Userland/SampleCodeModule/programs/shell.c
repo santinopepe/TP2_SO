@@ -26,6 +26,7 @@ static int current_stdin_fd = 0;
 static int current_stdout_fd = 1;
 
 
+typedef int (*EntryPoint)();
 
 #define WELCOME "Bienvenido a Cactiland OS!\n"
 #define INVALID_COMMAND "Comando invalido!\n"
@@ -438,6 +439,6 @@ static void test_processesWrapper(int argc, char *argv[]) {
 
 static void test_mmWrapper(int argc, char *argv[]) {
     uint16_t fileDescriptors[3] = {0, 1, 2}; // STDIN, STDOUT, STDERR
-    createProcess((uint64_t) test_mm , argv, argc, 1, NULL);
+    createProcess((EntryPoint) test_mm , argv, argc, 1, NULL);
     return; 
 }

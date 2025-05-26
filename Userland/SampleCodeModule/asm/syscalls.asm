@@ -120,7 +120,7 @@ sem_open:
     int 80h
     ret
 
-sem_close
+sem_close:
     mov rax, 17
     int 80h
     ret

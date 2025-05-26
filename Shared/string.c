@@ -37,6 +37,6 @@ int strcpycharlimited(char *dest, const char *origin, char limitChar, int limitI
 		dest[idx] = origin[idx];
 		idx++;
 	}
-	dest[idx] = 0;
+	dest[idx] = '\0';
 	return idx;
 }
