@@ -22,12 +22,10 @@ Esta imagen contiene todas las herramientas necesarias para compilar el kernel y
 
 ### Opciones disponibles:
 
-| Flag              | Descripción                                                                 |
-|-------------------|-----------------------------------------------------------------------------|
-| `--no-run`        | Evita ejecutar el kernel al finalizar la compilación.                      |
-| `--test-mm`       | Compila el kernel con tests de manejo de memoria (`TEST=mm`).              |
-| `--test-list`     | Compila el kernel con tests de listas (`TEST=list`).                       |
-| `--mm=<tipo>`     | Define el tipo de administrador de memoria (`MM_TYPE`) a pasar a `make`.   |
+| Flag              | Descripción                                                                 
+|-------------------|-----------------------------------------------------------------------------
+| `--no-run`        | Evita ejecutar el kernel al finalizar la compilación.                      
+| `--mm=<tipo>`     | Define el tipo de administrador de memoria (`MM_TYPE`) a pasar a `make` (buddy o bitmap)   
 
 > ⚠️ Los flags pueden combinarse según necesidad.
 
