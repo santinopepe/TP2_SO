@@ -3,15 +3,16 @@ GLOBAL setUpStackFrame
 
 section .text
 
-; setUpStackFrame(basePointer, rip, argc, argv)
+; setUpStackFrame(basePointer, rip, argc, argv, originalEntryPoint)
 ; rdi = basePointer (stack top, alineado)
 ; rsi = rip (entry point)
 ; rdx = argc
 ; rcx = argv
+; r8 = originalEntryPoint
 
 setUpStackFrame:
-    mov r8, rsp 	; Preservar rsp
-	mov r9, rbp		; Preservar rbp
+    mov r9, rsp 	; Preservar rsp
+	mov r10, rbp		; Preservar rbp
     
     mov     rsp, rdi         ; rsp = basePointer (ya alineado)
     push    0x0              ; SS (no usado en modo kernel, pero requerido por iretq)
@@ -19,6 +20,11 @@ setUpStackFrame:
     push    0x202            ; RFLAGS (interrupt enable)
     push    0x8              ; CS (kernel code segment)
     push    rsi              ; RIP (entry point)
+
+	; Seteamos los argumentos para processWrapper
+	mov rdi, r8      ; originalEntryPoint
+    mov rsi, rdx     ; argc
+    mov rdx, rcx     ; argv
 
     push rax
 	push rbx
@@ -38,7 +44,7 @@ setUpStackFrame:
     
     mov     rax, rsp         ; return value: nuevo rsp
 	
-    mov	 	rbp,r9	; rbp = basePointer original (para restaurar al salir del proceso)
-	mov     rsp, r8         ; restaurar rsp original (para que no se pierda el stack de kernel)
+    mov	 	rbp,r10	; rbp = basePointer original (para restaurar al salir del proceso)
+	mov     rsp, r9         ; restaurar rsp original (para que no se pierda el stack de kernel)
     
 	ret

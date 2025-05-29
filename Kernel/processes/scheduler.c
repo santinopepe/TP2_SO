@@ -123,6 +123,9 @@ int killProcess(uint16_t pid) {
     scheduler->process[pid].fileDescriptors[2] = 0;
 
     scheduler->processCount--;
+    if(pid == scheduler->currentPID) {
+        yield(); // cede el CPU al siguiente proceso
+    }
     return 0;
 }
 
@@ -168,8 +171,8 @@ void yield(){ //funcion para renuciar al cpu, para ceder su espacio a otro proce
 // RIP ??? ACA seria la primera instruccion a ejecutar
 // Los parametros de la funcion a ejecutar
 
-uint16_t createProcess(EntryPoint rip, char **argv, int argc, uint8_t priority, uint16_t fileDescriptors[]) {
-    if (rip == NULL || argv == NULL || argc < 0 || fileDescriptors == NULL) {
+uint16_t createProcess(EntryPoint originalEntryPoint, char **argv, int argc, uint8_t priority, uint16_t fileDescriptors[]) {
+    if (originalEntryPoint == NULL || argv == NULL || argc < 0 || fileDescriptors == NULL) {
         return -1;
     }
 
@@ -196,7 +199,7 @@ uint16_t createProcess(EntryPoint rip, char **argv, int argc, uint8_t priority, 
     scheduler->process[pid].quantum = MIN_QUANTUM* (1 + priority);
     scheduler->quantum = (pid == 0) ? 1: scheduler->process[pid].quantum; // Si es el primer proceso, no se cambia el quantum del scheduler
     scheduler->process[pid].foreground = 0;
-    scheduler->process[pid].rip = rip;
+    scheduler->process[pid].rip = (EntryPoint)processWrapper;
 
     scheduler->process[pid].argc = argc;
 
@@ -236,7 +239,8 @@ uint16_t createProcess(EntryPoint rip, char **argv, int argc, uint8_t priority, 
         scheduler->process[pid].basePointer,
         (uint64_t)scheduler->process[pid].rip,
         scheduler->process[pid].argc,
-        scheduler->process[pid].argv
+        scheduler->process[pid].argv,
+        (EntryPoint)originalEntryPoint
     );
 
     return pid;
@@ -406,8 +410,8 @@ void *schedule(void *prevStackPointer) {
     return scheduler->process[scheduler->currentPID].rsp;
 }
 
-void exitProcessWrapper() {
+void processWrapper(void (*EntryPoint)(int, char**), int argc, char **argv) {
+    EntryPoint(argc, argv);
     SchedulerADT scheduler = getSchedulerADT();
     killProcess(scheduler->currentPID); // marcalo como DEAD, libera memoria
-    yield(); // cede el CPU al siguiente proceso
 }
