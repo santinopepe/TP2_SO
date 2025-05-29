@@ -23,6 +23,7 @@ typedef struct SchedulerCDT{
     uint8_t currentPID; 
     uint64_t quantum; 
     uint8_t killFgProcess; //se enciende en uno si se quiere matar al proceso en foreground
+    uint8_t hasStarted;
 }SchedulerCDT;
 
 SchedulerADT getSchedulerADT(){
@@ -44,6 +45,7 @@ SchedulerADT createScheduler(){
     scheduler->quantum = 0;
     scheduler->currentPID = 0; 
     scheduler->killFgProcess = 0; 
+    scheduler->hasStarted = 0; 
 
     for(int i = 0; i < MAX_PROCESOS; i++){
         scheduler->process[i].status = DEAD;
@@ -121,7 +123,6 @@ int killProcess(uint16_t pid) {
     scheduler->process[pid].fileDescriptors[2] = 0;
 
     scheduler->processCount--;
-
     return 0;
 }
 
@@ -189,13 +190,14 @@ uint16_t createProcess(EntryPoint rip, char **argv, int argc, uint8_t priority, 
 
     uint8_t pid = i;
 
-    scheduler->process[pid].status = (pid == 0) ? RUNNING : READY;
+    scheduler->process[pid].status = READY;
     scheduler->process[pid].PID = pid;
     scheduler->process[pid].priority = priority;
     scheduler->process[pid].quantum = MIN_QUANTUM* (1 + priority);
-    scheduler->quantum = (pid == 0) ? scheduler->process[pid].quantum: scheduler->quantum;
+    scheduler->quantum = (pid == 0) ? 1: scheduler->process[pid].quantum; // Si es el primer proceso, no se cambia el quantum del scheduler
     scheduler->process[pid].foreground = 0;
     scheduler->process[pid].rip = rip;
+
     scheduler->process[pid].argc = argc;
 
     scheduler->process[pid].name = malloc(strlen(argv[0]) + 1);
@@ -210,23 +212,21 @@ uint16_t createProcess(EntryPoint rip, char **argv, int argc, uint8_t priority, 
         return -1;
     }
 
-    // Reserva memoria para el stack y alinea el basePointer a 16 bytes
-    scheduler->process[pid].stack = (uint64_t)malloc(STACK_SIZE + 16);
+    // Reserva memoria para el stack
+    scheduler->process[pid].stack = (uint64_t)malloc(STACK_SIZE); 
     if (scheduler->process[pid].stack == 0) {
         free((void*)scheduler->process[pid].argv);
         free((void*)scheduler->process[pid].name);
         return -1;
     }
-    scheduler->process[pid].basePointer = (scheduler->process[pid].stack + STACK_SIZE) & ~0xFUL;
-for (int i = 0; i < CANT_FILE_DESCRIPTORS; i++) {
+    scheduler->process[pid].basePointer = (scheduler->process[pid].stack + STACK_SIZE);
+    for (int i = 0; i < CANT_FILE_DESCRIPTORS; i++) {
         scheduler->process[pid].fileDescriptors[i] = fileDescriptors[i];
     }
 
     if (scheduler->readyList->first == NULL) {
-        printf("Insertando en la lista de listos\n");
         insertFirst(scheduler->readyList, &scheduler->process[pid].PID);
     } else {
-        printf("Insertando en la lista de listos\n");
         insertLast(scheduler->readyList, &scheduler->process[pid].PID);
     }
 
@@ -238,8 +238,6 @@ for (int i = 0; i < CANT_FILE_DESCRIPTORS; i++) {
         scheduler->process[pid].argc,
         scheduler->process[pid].argv
     );
-
-    
 
     return pid;
 }
@@ -369,22 +367,24 @@ ProcessData *ps(){ //lo ideal aca seria devolver un array con la info de cada p{
 
 void *schedule(void *prevStackPointer) {
     SchedulerADT scheduler = getSchedulerADT();
-    if (scheduler == NULL || scheduler->readyList->first == NULL) {
+    if (scheduler == NULL || scheduler->readyList->first == NULL || scheduler->processCount == 0) {
         return prevStackPointer;
     }
-    // Guardar el RSP del proceso actual
-    scheduler->process[scheduler->currentPID].rsp = prevStackPointer;
+
     // Decrementar quantum
     scheduler->quantum--;
     if (scheduler->quantum > 0 && scheduler->process[scheduler->currentPID].status == RUNNING) {
-        return scheduler->process[scheduler->currentPID].rsp;
+        return prevStackPointer;
     }
 
     // Cambiar al siguiente proceso si el quantum es 0 o el proceso está bloqueado/muerto
     if (scheduler->quantum == 0 || scheduler->process[scheduler->currentPID].status != RUNNING) {
-        processSwitch(); 
-        // Reiniciar quantum para el nuevo proceso
+        if(scheduler->hasStarted != 0){
+            scheduler->process[scheduler->currentPID].rsp = prevStackPointer;
+        }
+        processSwitch();      
         scheduler->quantum = scheduler->process[scheduler->currentPID].quantum;
+        scheduler->hasStarted = 1; // Indica que el scheduler ha comenzado a funcionar
     }
 
    
@@ -404,4 +404,10 @@ void *schedule(void *prevStackPointer) {
     }
 
     return scheduler->process[scheduler->currentPID].rsp;
+}
+
+void exitProcessWrapper() {
+    SchedulerADT scheduler = getSchedulerADT();
+    killProcess(scheduler->currentPID); // marcalo como DEAD, libera memoria
+    yield(); // cede el CPU al siguiente proceso
 }

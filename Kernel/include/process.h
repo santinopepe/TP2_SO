@@ -52,4 +52,6 @@ uint8_t initProcess(Process *process, uint16_t pid, uint64_t rip, char **args, i
 
 char **allocArgv(Process *p, char **argv, int argc);
 
+void exitProcessWrapper(void);
+
 #endif 
