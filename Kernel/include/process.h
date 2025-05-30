@@ -2,18 +2,12 @@
 #define PROCESS_H
 
 #include <stdint.h>
+#include <globals.h>
 
 typedef int (*EntryPoint)();
 
 #define CANT_FILE_DESCRIPTORS 3
 
-typedef enum {
-    BLOCKED = 0,
-    READY,
-    RUNNING,
-    ZOMBIE,
-    DEAD
-} ProcessStatus;
 
 typedef struct process{
     char *name;
@@ -33,14 +27,6 @@ typedef struct process{
 } Process;
 
 
-typedef struct ProcessData{ //datos del proceso para hacer el ps
-    char name[20]; //nombre del proceso, 20 porque pintó
-    uint16_t pid; //pid del proceso
-    uint8_t priority;
-    uint64_t stack;
-    uint64_t basePointer;
-    uint16_t foreground; //1 si es foreground, 0 si es background
-} ProcessData;
 
 void freeProcess(Process *process);
 
@@ -53,5 +39,7 @@ uint8_t initProcess(Process *process, uint16_t pid, uint64_t rip, char **args, i
 char **allocArgv(Process *p, char **argv, int argc);
 
 void processWrapper(void (*entryPoint)(int, char**), int argc, char **argv);
+
+
 
 #endif 

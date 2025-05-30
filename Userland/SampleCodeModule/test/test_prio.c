@@ -1,4 +1,4 @@
-/*#include <stdint.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <syscall.h>
 #include <test_util.h>
@@ -48,4 +48,4 @@ void test_prio() {
 
   for (i = 0; i < TOTAL_PROCESSES; i++)
     my_kill(pids[i]);
-}*/
+}

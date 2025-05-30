@@ -63,7 +63,7 @@ int main()
     createScheduler();
 	static char arg0[] = "shell";
 	static char *argv[] = {arg0, NULL};
-	static uint16_t fileDescriptors[] = {STDIN, STDOUT, STDERR};
+	
 	createProcess((EntryPoint)sampleCodeModuleAddress, argv, 1, 0, fileDescriptors);
 
 

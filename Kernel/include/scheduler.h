@@ -38,4 +38,6 @@ void *schedule(void * prevStackPointer);
 
 void killForegroundProcess();
 
+void processInfo(ProcessData * process); 
+
 #endif 

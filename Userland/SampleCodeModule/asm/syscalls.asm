@@ -199,4 +199,8 @@ getPid:
     mov rax, 32
     int 80h
     ret
-    
+
+processInfo:
+    mov rax, 33
+    int 80h
+    ret

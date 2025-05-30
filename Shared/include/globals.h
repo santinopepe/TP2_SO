@@ -7,6 +7,8 @@
 #define STDOUT 1 
 #define STDERR 2 
 
+const uint16_t fileDescriptors[] = {STDIN, STDOUT, STDERR};
+
 typedef struct MemoryInfoCDT{
     uint64_t totalMemory;
     uint64_t freeMemory;
@@ -17,5 +19,25 @@ typedef struct MemoryInfoCDT{
     uint64_t pageSize;
     char memoryType[16];
 } MemoryInfoCDT;
+
+typedef struct MemoryInfoCDT * MemoryInfoADT;
+
+typedef enum {
+    BLOCKED = 0,
+    READY,
+    RUNNING,
+    ZOMBIE,
+    DEAD
+} ProcessStatus;
+
+typedef struct ProcessData{ 
+    char name[20]; 
+    uint16_t pid; 
+    uint8_t priority;
+    uint64_t stack;
+    uint64_t basePointer;
+    uint16_t foreground; 
+    ProcessStatus status; 
+} ProcessData;
 
 #endif

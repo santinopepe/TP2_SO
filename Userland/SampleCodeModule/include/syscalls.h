@@ -3,28 +3,7 @@
 
 #include <stdint.h>
 #include <color.h>
-
-
-typedef struct MemoryInfoCDT{
-    uint64_t totalMemory;
-    uint64_t freeMemory;
-    uint64_t usedMemory;
-    uint64_t totalPages;
-    uint64_t freePages;
-    uint64_t usedPages;
-    uint64_t pageSize;
-    char memoryType[16];
-} MemoryInfoCDT;
-
-typedef MemoryInfoCDT * MemoryInfoADT;
-
-typedef enum {
-    BLOCKED = 0,
-    READY,
-    RUNNING,
-    ZOMBIE,
-    DEAD
-} ProcessStatus;
+#include <globals.h>
 
 
 /**
@@ -138,7 +117,7 @@ void free(void * ptr);
  * @brief Devuelve la cantidad de memoria total y libre del heap
  * @param mem: Estructura donde se guardan los datos
 */
-void getMemoryInfo(MemoryInfoADT * mem);
+void getMemoryInfo(MemoryInfoADT  mem);
 
 /**
  * @brief Abre un semáforo
@@ -261,6 +240,12 @@ int blockProcess(uint32_t pid);
 */
 uint16_t getPid();
 
+
+/**
+ * @brief Obtiene la informacion de un proceso
+ * @param process: Estructura donde se guardan los datos del proceso
+*/
+void processInfo(ProcessData * process);
 
 
 

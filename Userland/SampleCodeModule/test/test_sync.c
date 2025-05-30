@@ -1,4 +1,4 @@
-/*#include <stdint.h>
+#include <stdint.h>
 #include <stdio.h>
 #include "syscall.h"
 #include "test_util.h"
@@ -76,4 +76,4 @@ uint64_t test_sync(uint64_t argc, char *argv[]) { //{n, use_sem, 0}
   printf("Final value: %d\n", global);
 
   return 0;
-}*/
+}

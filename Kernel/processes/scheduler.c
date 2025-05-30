@@ -8,6 +8,8 @@
 #include <video.h>
 #include <stdlib.h>
 #include <string.h>
+#include <globals.h>
+
 
 #define MAX_PROCESOS 1000
 #define STACK_SIZE 0x1000 //4kb
@@ -414,4 +416,25 @@ void processWrapper(void (*EntryPoint)(int, char**), int argc, char **argv) {
     EntryPoint(argc, argv);
     SchedulerADT scheduler = getSchedulerADT();
     killProcess(scheduler->currentPID); // marcalo como DEAD, libera memoria
+}
+
+
+void processInfo(ProcessData * process) {
+    SchedulerADT scheduler = getSchedulerADT();
+    if (scheduler == NULL) {
+        return;
+    }
+    uint8_t i = 0; 
+    while(i < scheduler->processCount ) {
+        if (scheduler->process[i].status != DEAD) {
+            process[i].priority = scheduler->process[i].priority;
+            process[i].foreground = scheduler->process[i].foreground;
+            process[i].stack = scheduler->process[i].stack;
+            process[i].basePointer = scheduler->process[i].basePointer;
+            process[i].pid = scheduler->process[i].status;
+            strcpy(process[i].name, scheduler->process[i].name);
+        }
+        i++;
+    }
+
 }
