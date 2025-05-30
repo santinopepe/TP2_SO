@@ -1,6 +1,7 @@
-#include <syscall.h>
-#include <libc.h>
+#include <syscalls.h>
+#include <stdlib.h>
 #include <globals.h>
+#include <stdio.h>
 
 
 #define MAX_PHYLOS 10
@@ -33,7 +34,7 @@ void removePhilosopher();
 void startDining() {
 	char c;
 	while (1) {
-		c = readchar();
+		c = getchar();
 		if(c == 'A') {
 			if(phylosCount == MAX_PHYLOS) {
 				sem_wait(PRINT_ID);
@@ -90,12 +91,12 @@ void addPhilosopher() {
 	char *params[] = {"philosopher", phyloBuff};
 	
 
-	philosopherPids[phylosCount] = syscreateProcess((uint64_t) philosopher, params, 2, 1, fileDescriptors, 1);
+	philosopherPids[phylosCount] = createProcess((EntryPoint) philosopher, params, 2, 1, fileDescriptors);
 	if (philosopherPids[phylosCount] < 0) {
 		printf("Error creating philosopher %d\n", phylosCount);
 		return;
 	}
-	if (sysunblockProcess(philosopherPids[phylosCount]) == -1) {
+	if (unblockProcess(philosopherPids[phylosCount]) == -1) {
 		return;
 	}
 

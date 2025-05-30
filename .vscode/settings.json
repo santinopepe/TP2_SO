@@ -4,6 +4,8 @@
     "memoryinfo.h": "c",
     "stdint.h": "c",
     "process.h": "c",
-    "doublelinkedlistadt.h": "c"
+    "doublelinkedlistadt.h": "c",
+    "syscalls.h": "c",
+    "globals.h": "c"
   }
 }

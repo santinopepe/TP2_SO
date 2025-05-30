@@ -32,6 +32,7 @@ GLOBAL unblockProcess
 GLOBAL blockProcess
 GLOBAL yield
 GLOBAL getPid
+GLOBAL processInfo
 
 
 read:

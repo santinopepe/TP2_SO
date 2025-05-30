@@ -1,6 +1,9 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <globals.h>
+
+uint16_t fileDescriptors[] = {STDIN, STDOUT, STDERR};
 
 unsigned int log(uint64_t n, int base) {
 	unsigned int count = 0;

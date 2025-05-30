@@ -11,6 +11,7 @@
 #include <cmdParserADT.h>
 #include <tests.h>
 #include <globals.h>
+#include <phylo.h>
 
 #define ES_VOCAL(n) ((n) == 'a' || (n) == 'e' || (n) == 'i' || (n) == 'o' || (n) == 'u' || \
                             (n) == 'A' || (n) == 'E' || (n) == 'I' || (n) == 'O' || (n) == 'U')
@@ -34,7 +35,6 @@ typedef enum
 static int current_stdin_fd = 0;
 static int current_stdout_fd = 1;
 
-typedef int (*EntryPoint)();
 
 #define WELCOME "Bienvenido a Cactiland OS!\n"
 #define INVALID_COMMAND "Comando invalido!\n"
@@ -52,10 +52,10 @@ typedef struct
     CommandFunction f; // Funcion a ejecutar
 } Command;
 
-static void help();
+static void help(int argc, char *argv[]);
 static void man(int argc, char *argv[]);
 static void printInfoReg();
-static void time();
+static void time(int argc, char *argv[]);
 static int div(int argc, char *argv[]);
 static void tron();
 static void tronZen();
@@ -70,7 +70,6 @@ static int setStatusWrapper(uint16_t pid, ProcessStatus status);
 static int readLineWithCursor(char *buffer, int max_len);
 static void executePipedCommands(CommandADT command);
 static void test_processesWrapper(int argc, char *argv[]);
-static void test_mmWrapper(int argc, char *argv[]);
 static void test_syncWrapper(int argc, char *argv[]);
 static void test_prioWrapper(int argc, char *argv[]);
 static void mem(int argc, char *argv[]);
@@ -78,6 +77,8 @@ static void mem(int argc, char *argv[]);
 static int wc(int argc, char *argv[]);
 static int cat(int argc, char *argv[]);
 static void filter(int argc, char *argv[]);
+static void ps(int argc, char *argv[]);
+
 
 static Command commands[] = {
     {"help", "Listado de comandos", (CommandFunction)help},
@@ -105,11 +106,11 @@ static Command commands[] = {
     {"filter", "Filtra las vocales del input", (CommandFunction)filter},
     {"cat", "Imprime el STDIN tal como lo recibe", (CommandFunction)cat},
     {"phylo", "Ejecuta la simulacion del problema de los filosofos comensales", (CommandFunction)phylo},
+    {"ps", "Muestra la informacion de los procesos vivos", (CommandFunction)ps},
 };
 
 void run_shell()
 {
-    int index;
     puts(WELCOME);
 
     char inputBuffer[MAX_CHARS];
@@ -479,7 +480,7 @@ static void executePipedCommands(CommandADT command)
 static void mem(int argc, char *argv[])
 {
     MemoryInfoADT memInfo;
-    getMemoryInfo(memInfo);
+    memInfo = getMemoryInfo(memInfo);
 
     if (memInfo == NULL)
     {

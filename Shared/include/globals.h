@@ -7,7 +7,7 @@
 #define STDOUT 1 
 #define STDERR 2 
 
-const uint16_t fileDescriptors[] = {STDIN, STDOUT, STDERR};
+extern uint16_t fileDescriptors[3];
 
 typedef struct MemoryInfoCDT{
     uint64_t totalMemory;
@@ -39,5 +39,7 @@ typedef struct ProcessData{
     uint16_t foreground; 
     ProcessStatus status; 
 } ProcessData;
+
+typedef int (*EntryPoint)();
 
 #endif

@@ -117,7 +117,7 @@ void free(void * ptr);
  * @brief Devuelve la cantidad de memoria total y libre del heap
  * @param mem: Estructura donde se guardan los datos
 */
-void getMemoryInfo(MemoryInfoADT  mem);
+MemoryInfoCDT * getMemoryInfo(MemoryInfoADT  mem);
 
 /**
  * @brief Abre un semáforo
@@ -246,6 +246,8 @@ uint16_t getPid();
  * @param process: Estructura donde se guardan los datos del proceso
 */
 void processInfo(ProcessData * process);
+
+void yield();
 
 
 
