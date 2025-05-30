@@ -104,6 +104,7 @@ static Command commands[] = {
     {"wc", "Cuenta la cantidad de lineas del input", (CommandFunction)wc},
     {"filter", "Filtra las vocales del input", (CommandFunction)filter},
     {"cat", "Imprime el STDIN tal como lo recibe", (CommandFunction)cat},
+    {"phylo", "Ejecuta la simulacion del problema de los filosofos comensales", (CommandFunction)phylo},
 };
 
 void run_shell()
