@@ -13,7 +13,7 @@
 
 #define MAX_PROCESOS 1000
 #define STACK_SIZE 0x1000 //4kb
-#define MIN_QUANTUM 10 
+#define MIN_QUANTUM 1
 
 static void * SchedulerPointer = NULL;  
 
@@ -44,7 +44,7 @@ SchedulerADT createScheduler(){
     scheduler->blockedList = createDoubleLinkedList();
 
     scheduler->processCount = 0;
-    scheduler->quantum = 0;
+    scheduler->quantum = MIN_QUANTUM;
     scheduler->currentPID = 0; 
     scheduler->killFgProcess = 0; 
     scheduler->hasStarted = 0; 
@@ -114,7 +114,7 @@ int killProcess(uint16_t pid) {
     scheduler->process[pid].status = DEAD;
     scheduler->process[pid].rsp = NULL;
     scheduler->process[pid].priority = 0;
-    scheduler->process[pid].quantum = 0;
+    scheduler->process[pid].quantum = MIN_QUANTUM;
     scheduler->process[pid].foreground = 0;
     scheduler->process[pid].argv = NULL;
     scheduler->process[pid].argc = 0;
@@ -199,7 +199,7 @@ uint16_t createProcess(EntryPoint originalEntryPoint, char **argv, int argc, uin
     scheduler->process[pid].PID = pid;
     scheduler->process[pid].priority = priority;
     scheduler->process[pid].quantum = MIN_QUANTUM * (1 + priority);
-    scheduler->quantum = (pid == 0) ? 1: scheduler->process[pid].quantum; // Si es el primer proceso, no se cambia el quantum del scheduler
+    scheduler->quantum = (pid == 0) ? MIN_QUANTUM : scheduler->process[pid].quantum; // Si es el primer proceso, no se cambia el quantum del scheduler
     scheduler->process[pid].foreground = 0;
     scheduler->process[pid].rip = (EntryPoint)processWrapper;
 
