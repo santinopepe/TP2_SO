@@ -7,6 +7,8 @@
 #include <MemoryManager.h>
 #include <scheduler.h>
 #include <process.h>
+#include <semaphoresManager.h>
+#include <pipeManager.h>
 #include <globals.h>
 
 
@@ -51,6 +53,8 @@ void initializeKernelBinary()
     _cli();
     createMemoryManager(heapStart, HEAP_SIZE); 
     createScheduler();
+	createPipeManager();
+	create_semaphoresManager();
     _sti();
 
 }

@@ -520,23 +520,25 @@ static void mem(int argc, char *argv[])
 
 static void ps(int argc, char *argv[])
 {
-    if (argc != 1)
+    if (argc != 2)
     {
         printErr("Uso: ps\n");
         return;
     }
     char *status[] = {"BLOCKED", "READY", "RUNNING", "ZOMBIEE", "DEAD"};
-    ProcessData *processes = malloc(sizeof(ProcessData) * 1000); // Asumimos un maximo de 1000 procesos
+    ProcessData processes[1000]; 
     char * foreground[2] = {"FOREGROUND", "BACKGROUND"};
-    for(int i = 0; i < 1000; i++)
-    {
-        processes[i].status = DEAD; 
-    }
+
     if (processes == NULL)
     {
         printErr("Error al asignar memoria para los procesos.\n");
         return;
     }
+    for(int i = 0; i < 1000; i++)
+    {
+        processes[i].status = DEAD; 
+    }
+    
     processInfo(processes); // Llamamos a la funcion que obtiene la informacion de los procesos
     if (processes == NULL)
     {
@@ -556,7 +558,6 @@ static void ps(int argc, char *argv[])
             free(processes[i].name); // Liberamos la memoria del nombre del proceso
         }
     }
-    free(processes);
 }
 
 static void kill(int argc, char *argv[])
@@ -595,9 +596,15 @@ static void test_syncWrapper(int argc, char *argv[])
     return;
 }
 
+static void nada(){
+    while(1){
+        // No hace nada, solo espera
+    }
+}
+
 static void test_prioWrapper(int argc, char *argv[])
 {
-    createProcess((uint64_t) test_prio, argv, argc, atoi(argv[1]), fileDescriptors);
+    createProcess((uint64_t) nada, argv, argc, 0, fileDescriptors);
     return;
 }
 
@@ -638,3 +645,4 @@ static int wc(int argc, char *argv[]){
     printf("La cantidad de lineas: %d\n", lineCounter);
     return 0;
 }
+
