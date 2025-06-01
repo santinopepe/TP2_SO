@@ -32,6 +32,7 @@ GLOBAL unblockProcess
 GLOBAL blockProcess
 GLOBAL yield
 GLOBAL getPid
+GLOBAL waitForChildren
 GLOBAL processInfo
 
 
@@ -201,7 +202,12 @@ getPid:
     int 80h
     ret
 
-processInfo:
+waitForChildren:
     mov rax, 33
+    int 80h
+    ret
+
+processInfo:
+    mov rax, 34
     int 80h
     ret

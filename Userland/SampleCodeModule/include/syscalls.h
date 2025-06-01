@@ -247,6 +247,20 @@ uint16_t getPid();
 */
 void processInfo(ProcessData * process);
 
+/**
+ * @brief Espera a que un proceso termine sus hijos
+ * @param pid: PID del proceso a esperar
+ * @return 0: Si pudo esperar a los hijos, -1 si no existe el proceso o -2 si no se puede esperar a los hijos
+*/
+ 
+
+uint16_t waitForChildren(uint16_t pid);
+
+
+/**
+ * @brief Cede el CPU al siguiente proceso
+ * Esta funcion se usa en el scheduler para cambiar de proceso, se usa en el dispatcher
+*/
 void yield();
 
 

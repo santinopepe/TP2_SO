@@ -198,7 +198,7 @@ uint16_t createProcess(EntryPoint originalEntryPoint, char **argv, int argc, uin
     scheduler->process[pid].status = READY;
     scheduler->process[pid].PID = pid;
     scheduler->process[pid].priority = priority;
-    scheduler->process[pid].quantum = MIN_QUANTUM* (1 + priority);
+    scheduler->process[pid].quantum = MIN_QUANTUM * (1 + priority);
     scheduler->quantum = (pid == 0) ? 1: scheduler->process[pid].quantum; // Si es el primer proceso, no se cambia el quantum del scheduler
     scheduler->process[pid].foreground = 0;
     scheduler->process[pid].rip = (EntryPoint)processWrapper;
@@ -427,11 +427,12 @@ void processInfo(ProcessData * process) {
     uint8_t i = 0; 
     while(i < scheduler->processCount ) {
         if (scheduler->process[i].status != DEAD) {
+            process[i].pid = scheduler->process[i].PID;
             process[i].priority = scheduler->process[i].priority;
             process[i].foreground = scheduler->process[i].foreground;
             process[i].stack = scheduler->process[i].stack;
             process[i].basePointer = scheduler->process[i].basePointer;
-            process[i].pid = scheduler->process[i].status;
+            process[i].status = scheduler->process[i].status;
             strcpy(process[i].name, scheduler->process[i].name);
         }
         i++;

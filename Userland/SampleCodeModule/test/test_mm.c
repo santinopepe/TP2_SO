@@ -82,7 +82,7 @@ int test_mm(int argc, char *argv[]) {
     uint32_t total;
     uint64_t max_memory;
 
-    if (argc != 1) {
+    if (argc != 2) {
          printf("test_mm ERROR: Se esperaba 1 argumento (max_memory), recibidos %d\n", argc); 
          return -1; 
     }

@@ -527,6 +527,11 @@ static void ps(int argc, char *argv[])
     }
     char *status[] = {"BLOCKED", "READY", "RUNNING", "ZOMBIEE", "DEAD"};
     ProcessData *processes = malloc(sizeof(ProcessData) * 1000); // Asumimos un maximo de 1000 procesos
+    char * foreground[2] = {"FOREGROUND", "BACKGROUND"};
+    for(int i = 0; i < 1000; i++)
+    {
+        processes[i].status = DEAD; 
+    }
     if (processes == NULL)
     {
         printErr("Error al asignar memoria para los procesos.\n");
@@ -540,10 +545,16 @@ static void ps(int argc, char *argv[])
         return;
     }
 
-    printf("PID\tNombre\t\tPrioridad\tEstado\n");
-    for (int i = 0; i < 1000 && processes[i].pid != 0; i++)
+    printf("PID Nombre Prioridad Estado         Plano          Stack\n");
+    for (int i = 0; i < 1000; i++)
     {
-        printf("%d\t%s\t%d\t%d\n", processes[i].pid, processes[i].name, processes[i].priority, status[processes[i].status]);
+        if(processes[i].status == DEAD)
+            continue; 
+        printf("%d   %s  %d         %s        %s     %d\n", processes[i].pid, processes[i].name, processes[i].priority, status[processes[i].status], foreground[processes[i].foreground],processes[i].stack);
+        if (processes[i].name != NULL)
+        {
+            free(processes[i].name); // Liberamos la memoria del nombre del proceso
+        }
     }
     free(processes);
 }
