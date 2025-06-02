@@ -126,8 +126,8 @@ static Command builtInCommands[] = {
     {"font-size", "Cambio de dimensiones de la fuente. Para hacerlo escribir el comando seguido de un numero", (CommandFunction)fontSize},
     {"clear", "Limpia toda la pantalla", (CommandFunction)myClear},
     {"nice", "Cambia la prioridad de un proceso. Uso: nice <pid> <prioridad>", (CommandFunction)niceWrapper},
-    {"block", "Bloquea un proceso. Uso: block <pid>", (CommandFunction)blockProcess},
-    {"unblock", "Desbloquea un proceso. Uso: unblock <pid>", (CommandFunction)unblockProcess},
+    {"block", "Bloquea un proceso. Uso: block <pid>", (CommandFunction)blockProcessWrapper},
+    {"unblock", "Desbloquea un proceso. Uso: unblock <pid>", (CommandFunction)unblockProcessWrapper},
     {"kill", "Elimina un proceso. Uso: kill <pid>", (CommandFunction)kill},
     {"test-mm", "Ejecuta un test de memoria. Uso: test-mm <max_memory>", (CommandFunction)test_mm},
     {"mem", "Muestra informacion de la memoria del sistema", (CommandFunction)mem},
@@ -472,13 +472,13 @@ static void executePipedCommands(CommandADT command)
         else{
             if(getIsBackground(command, i)){
                 uint16_t fileDescriptors[] = {-1, STDIN, STDERR};
-                createProcess((uint64_t)commands[cmd_index_in_shell].f, argv, argc, 1, fileDescriptors);
+                createProcess((uint64_t)commands[cmd_index_in_shell].f, argv, argc, atoi(argv[1]), fileDescriptors);
                 continue;
             }
             else{
                 uint16_t fileDescriptors[] = {STDIN, STDOUT, STDERR};
-                uint16_t pid = createProcess((uint64_t)commands[cmd_index_in_shell].f, argv, argc, 1, fileDescriptors);
-                waitForChildren(pid);
+                uint16_t pid = createProcess((uint64_t)commands[cmd_index_in_shell].f, argv, argc, atoi(argv[1]), fileDescriptors);
+                //waitForChildren(pid);
             }
         }
 
@@ -601,7 +601,7 @@ static void ps(int argc, char *argv[])
         return;
     }
     char *status[] = {"BLOCKED", "READY", "RUNNING", "ZOMBIEE", "DEAD"};
-    ProcessData processes[1000]; 
+    ProcessData processes[MAX_PROCESOS]; 
     char * foreground[2] = {"FOREGROUND", "BACKGROUND"};
 
     if (processes == NULL)
@@ -609,7 +609,7 @@ static void ps(int argc, char *argv[])
         printErr("Error al asignar memoria para los procesos.\n");
         return;
     }
-    for(int i = 0; i < 1000; i++)
+    for(int i = 0; i < MAX_PROCESOS; i++)
     {
         processes[i].status = DEAD; 
     }
@@ -623,15 +623,11 @@ static void ps(int argc, char *argv[])
     }
 
     printf("PID Nombre Prioridad Estado         Plano          Stack\n");
-    for (int i = 0; i < 1000; i++)
+    for (int i = 0; i < MAX_PROCESOS; i++)
     {
         if(processes[i].status == DEAD)
             continue; 
         printf("%d   %s  %d         %s        %s     %d\n", processes[i].pid, processes[i].name, processes[i].priority, status[processes[i].status], foreground[processes[i].foreground],processes[i].stack);
-        if (processes[i].name != NULL)
-        {
-            free(processes[i].name); // Liberamos la memoria del nombre del proceso
-        }
     }
 }
 
