@@ -11,22 +11,13 @@
 #include <globals.h>
 
 
-#define MAX_PROCESOS 1000
+
 #define STACK_SIZE 0x1000 //4kb
-#define MIN_QUANTUM 10 
+#define MIN_QUANTUM 1
 
 static void * SchedulerPointer = NULL;  
 
-typedef struct SchedulerCDT{
-    Process process[MAX_PROCESOS]; //array de procesos, cada posicion es el pid del proceso
-    uint8_t processCount; //cantidad de procesos en el array
-    DoubleLinkedListADT readyList;
-    DoubleLinkedListADT blockedList;
-    uint8_t currentPID; 
-    uint64_t quantum; 
-    uint8_t killFgProcess; //se enciende en uno si se quiere matar al proceso en foreground
-    uint8_t hasStarted;
-}SchedulerCDT;
+
 
 SchedulerADT getSchedulerADT(){
     return SchedulerPointer; 
@@ -44,7 +35,7 @@ SchedulerADT createScheduler(){
     scheduler->blockedList = createDoubleLinkedList();
 
     scheduler->processCount = 0;
-    scheduler->quantum = 0;
+    scheduler->quantum = MIN_QUANTUM;
     scheduler->currentPID = 0; 
     scheduler->killFgProcess = 0; 
     scheduler->hasStarted = 0; 
@@ -114,7 +105,7 @@ int killProcess(uint16_t pid) {
     scheduler->process[pid].status = DEAD;
     scheduler->process[pid].rsp = NULL;
     scheduler->process[pid].priority = 0;
-    scheduler->process[pid].quantum = 0;
+    scheduler->process[pid].quantum = MIN_QUANTUM;
     scheduler->process[pid].foreground = 0;
     scheduler->process[pid].argv = NULL;
     scheduler->process[pid].argc = 0;
@@ -199,7 +190,7 @@ uint16_t createProcess(EntryPoint originalEntryPoint, char **argv, int argc, uin
     scheduler->process[pid].PID = pid;
     scheduler->process[pid].priority = priority;
     scheduler->process[pid].quantum = MIN_QUANTUM* (1 + priority);
-    scheduler->quantum = (pid == 0) ? 1: scheduler->process[pid].quantum; // Si es el primer proceso, no se cambia el quantum del scheduler
+    scheduler->quantum = (pid == 0) ? MIN_QUANTUM: scheduler->process[pid].quantum; // Si es el primer proceso, no se cambia el quantum del scheduler
     scheduler->process[pid].foreground = fileDescriptors[0] == STDIN ? 1 : 0; // Si el primer file descriptor es STDIN, es un proceso en foreground
     scheduler->process[pid].rip = (EntryPoint)processWrapper;
 
@@ -292,22 +283,22 @@ void processSwitch() {
     scheduler->process[scheduler->currentPID].status = RUNNING;
 }
 
-int blockProcess(){ //bloquea el proceso, lo saca de la lista de listos y lo agrega a la lista de bloqueados
+int blockProcess(uint16_t pid){ //bloquea el proceso, lo saca de la lista de listos y lo agrega a la lista de bloqueados
     SchedulerADT scheduler = getSchedulerADT();
     if(scheduler==NULL){
         return -1 ; 
     }
-    uint16_t pid = scheduler->currentPID;
+    
     
 
-    if(scheduler->process[scheduler->currentPID].status == RUNNING){ 
-        scheduler->process[scheduler->currentPID].status = BLOCKED; 
+    if(scheduler->process[pid].status == RUNNING){ 
+        scheduler->process[pid].status = BLOCKED; 
         processSwitch();
         removeElement(scheduler->readyList, &scheduler->process[pid].PID);
         insertLast(scheduler->blockedList, &scheduler->process[pid].PID); //agrega el proceso a la lista de bloqueados
 
-    } else if (scheduler->process[scheduler->currentPID].status == READY){
-        scheduler->process[scheduler->currentPID].status = BLOCKED; 
+    } else if (scheduler->process[pid].status == READY){
+        scheduler->process[pid].status = BLOCKED; 
         removeElement(scheduler->readyList, &scheduler->process[pid].PID);
         insertLast(scheduler->blockedList, &scheduler->process[pid].PID); //agrega el proceso a la lista de bloqueados
     }
@@ -427,11 +418,12 @@ void processInfo(ProcessData * process) {
     uint8_t i = 0; 
     while(i < scheduler->processCount ) {
         if (scheduler->process[i].status != DEAD) {
+            process[i].pid = scheduler->process[i].PID;
             process[i].priority = scheduler->process[i].priority;
             process[i].foreground = scheduler->process[i].foreground;
             process[i].stack = scheduler->process[i].stack;
             process[i].basePointer = scheduler->process[i].basePointer;
-            process[i].pid = scheduler->process[i].status;
+            process[i].status = scheduler->process[i].status;
             strcpy(process[i].name, scheduler->process[i].name);
         }
         i++;

@@ -53,28 +53,43 @@ uint64_t my_process_inc(uint64_t argc, char *argv[]) {
   return 0;
 }
 
-uint64_t test_sync(uint64_t argc, char *argv[]) { //{n, use_sem, 0}
+uint64_t test_sync(uint64_t argc, char *argv[]) { //{name,n, use_sem, 0}
   uint64_t pids[2 * TOTAL_PAIR_PROCESSES];
 
-  if (argc != 2)
-    return -1;
 
-  char *argvDec[] = {argv[0], "-1", argv[1], NULL};
-  char *argvInc[] = {argv[0], "1", argv[1], NULL};
+  if (argc != 3){
+    printf("test_sync: ERROR: Se esperaban 2 argumentos (n, use_sem), recibidos %d\n", argc - 1);
+    return -1;
+  }
+  char *argvDec[] = {argv[1], "-1", argv[2], NULL};
+  char *argvInc[] = {argv[1], "1", argv[2], NULL};
 
   global = 0;
 
   uint64_t i;
+  
+  printf("Iniciando test_sync...\n");
+  printf("Argumentos del test: n=%s, use_sem=%s\n", argv[1], argv[2]);
+
+  printf("Creando procesos...\n");
   for (i = 0; i < TOTAL_PAIR_PROCESSES; i++) {
+    printf("  Creando par de procesos %d (Dec e Inc)...\n", i + 1);
     pids[i] = createProcess((EntryPoint)my_process_inc, argvDec, 3, 1, fileDescriptors);
+    printf("    Proceso Dec (PID: %d) creado.\n", pids[i]);
     pids[i + TOTAL_PAIR_PROCESSES] = createProcess((EntryPoint)my_process_inc, argvInc, 3, 1, fileDescriptors);
+    printf("    Proceso Inc (PID: %d) creado.\n", pids[i + TOTAL_PAIR_PROCESSES]);
   }
 
+  printf("Esperando a que los procesos terminen...\n");
   for (i = 0; i < TOTAL_PAIR_PROCESSES; i++) {
+    printf("  Esperando al par de procesos %d (PID Dec: %d, PID Inc: %d)...\n", i + 1, pids[i], pids[i + TOTAL_PAIR_PROCESSES]);
     sem_wait(pids[i]);
+    printf("    Proceso Dec (PID: %d) finalizado.\n", pids[i]);
     sem_wait(pids[i + TOTAL_PAIR_PROCESSES]);
+    printf("    Proceso Inc (PID: %d) finalizado.\n", pids[i + TOTAL_PAIR_PROCESSES]);
   }
 
+  printf("Todos los procesos han terminado.\n");
   printf("Final value: %d\n", global);
 
   return 0;

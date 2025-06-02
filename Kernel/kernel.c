@@ -3,11 +3,12 @@
 #include <moduleLoader.h>
 #include <interrupts.h>
 #include <video.h>
-#include <test_mm.h>
 #include <test_list.h>
 #include <MemoryManager.h>
 #include <scheduler.h>
 #include <process.h>
+#include <semaphoresManager.h>
+#include <pipeManager.h>
 #include <globals.h>
 
 
@@ -52,6 +53,8 @@ void initializeKernelBinary()
     _cli();
     createMemoryManager(heapStart, HEAP_SIZE); 
     createScheduler();
+	createPipeManager();
+	create_semaphoresManager();
     _sti();
 
 }
@@ -67,22 +70,7 @@ int main()
 	createProcess((EntryPoint)sampleCodeModuleAddress, argv, 1, 0, fileDescriptors);
 
 
-/* Agregue esto para tener la posiblidad de ejecutar el test_mm.c dentro de kernel space*/
-#ifdef TEST_MM
-    char max_mem_str[] = "16777216"; // 16MB
-    char *test_argv[] = { max_mem_str, NULL }; 
-    uint64_t test_argc = 1;
-    printf("Starting Memory Manager test...\n"); 
-    uint64_t test_result = test_mm(test_argc, test_argv);
-    printf("Memory Manager test finished.\n"); 
 
-    if (test_result != 0) {
-        printf("--- Test del Memory Manager: FAILED ----\n"); 
-        while(1) _hlt(); 
-    } else {
-        printf("--- Test del Memory Manager: PASSED ----\n"); 
-    }
-#endif
 
 #ifdef TEST_LIST
 	char *test_argv[] = { NULL }; 

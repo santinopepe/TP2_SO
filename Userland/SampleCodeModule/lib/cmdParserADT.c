@@ -67,6 +67,14 @@ CommandADT parseInput(char *input) {
             freeCommandADT(command);
             return NULL;
         }
+        // Copiar el nombre del proceso como primer argumento
+        currentFunction->argv[0] = malloc(strlen(currentFunction->name) + 1);
+        if (currentFunction->argv[0] == NULL) {
+            freeCommandADT(command);
+            return NULL;
+        }
+        strcpy(currentFunction->argv[0], currentFunction->name);
+        currentFunction->argc = 1; 
 
         while (input[inputIdx] != '\n' && input[inputIdx] != '\0' && input[inputIdx] != PIPE && currentFunction->argc < MAX_ARGS) {
             inputIdx += _skipSpaces(input + inputIdx);
@@ -90,7 +98,9 @@ CommandADT parseInput(char *input) {
                 freeCommandADT(command);
                 return NULL;
             }
+            
             copiedChars = strcpychar(arg, input + inputIdx, ' ');
+            
             if (copiedChars == 0 || arg == NULL) {
                 free(arg);
                 break;
@@ -158,7 +168,7 @@ int getCommandArgc(CommandADT cmd, int index) {
     if (cmd == NULL || index < 0 || index >= cmd->qtyPrograms) {
         return -1;
     }
-    return cmd->commands[index].argc + 1;
+    return cmd->commands[index].argc;
 }
 char ** getCommandArgv(CommandADT cmd, int index) {
     if (cmd == NULL || index < 0 || index >= cmd->qtyPrograms) {

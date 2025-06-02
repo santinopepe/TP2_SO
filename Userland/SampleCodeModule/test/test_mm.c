@@ -87,10 +87,10 @@ int test_mm(int argc, char *argv[]) {
          return -1; 
     }
 
-    max_memory = satoi(argv[0]);
+    max_memory = satoi(argv[1]);
 
     if (max_memory <= 0) {
-        printf("test_mm ERROR: max_memory invalido (%s -> %d)\n", argv[0], max_memory); 
+        printf("test_mm ERROR: max_memory invalido (%s -> %d)\n", argv[1], max_memory); 
         return -1; 
     }
 
