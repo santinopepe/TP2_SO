@@ -638,15 +638,10 @@ static void test_syncWrapper(int argc, char *argv[])
     return;
 }
 
-static void nada(){
-    while(1){
-        // No hace nada, solo espera
-    }
-}
 
 static void test_prioWrapper(int argc, char *argv[])
 {
-    createProcess((uint64_t) nada, argv, argc, 0, fileDescriptors);
+    createProcess((uint64_t) test_prio, argv, argc, 0, fileDescriptors);
     return;
 }
 
