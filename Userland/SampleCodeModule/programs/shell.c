@@ -66,6 +66,8 @@ static void myClear();
 static void kill(int argc, char *argv[]);
 static int niceWrapper(uint16_t pid, uint8_t priority);
 static int setStatusWrapper(uint16_t pid, ProcessStatus status);
+static void blockProcessWrapper(int argc, char *argv[]);
+static void unblockProcessWrapper(int argc, char *argv[]);
 
 static int readLineWithCursor(char *buffer, int max_len);
 static void executePipedCommands(CommandADT command);
@@ -94,8 +96,8 @@ static Command commands[] = {
     {"clear", "Limpia toda la pantalla", (CommandFunction)myClear},
     {"nice", "Cambia la prioridad de un proceso. Uso: nice <pid> <prioridad>", (CommandFunction)niceWrapper},
     {"set-status", "Cambia el estado de un proceso. Uso: set-status <pid> <estado>", (CommandFunction)setStatusWrapper},
-    {"block", "Bloquea un proceso. Uso: block <pid>", (CommandFunction)blockProcess},
-    {"unblock", "Desbloquea un proceso. Uso: unblock <pid>", (CommandFunction)unblockProcess},
+    {"block", "Bloquea un proceso. Uso: block <pid>", (CommandFunction)blockProcessWrapper},
+    {"unblock", "Desbloquea un proceso. Uso: unblock <pid>", (CommandFunction)unblockProcessWrapper},
     {"kill", "Elimina un proceso. Uso: kill <pid>", (CommandFunction)kill},
     {"test-processes", "Ejecuta un test de procesos. Uso: test-processes <cantidad>", (CommandFunction)test_processesWrapper},
     {"test-priority", "Ejecuta un test de prioridades. Uso: test-priority", (CommandFunction)test_prioWrapper},
@@ -683,3 +685,51 @@ static int wc(int argc, char *argv[]){
     return 0;
 }
 
+static void blockProcessWrapper(int argc, char *argv[])
+{
+    if (argc != 2)
+    {
+        printErr("Uso: block <pid>\n");
+        return;
+    }
+    printf("Bloqueando proceso %s...\n", argv[1]);
+    int result = blockProcess(atoi(argv[1]));
+    switch (result)
+    {
+    case 0:
+        printf("Proceso %d bloqueado exitosamente.\n", atoi(argv[1]));
+        break;
+    case -1:
+        printErr("Error: El proceso no existe.\n");
+        break;
+    case -2:
+        printErr("Error: No se puede bloquear el proceso.\n");
+        break;
+    default:
+        printErr("Error desconocido al bloquear el proceso.\n");
+    }
+}
+
+static void unblockProcessWrapper(int argc, char *argv[])
+{
+    if (argc != 2)
+    {
+        printErr("Uso: unblock <pid>\n");
+        return;
+    }
+    int result = unblockProcess(atoi(argv[1]));
+    switch (result)
+    {
+    case 0:
+        printf("Proceso %d desbloqueado exitosamente.\n", atoi(argv[1]));
+        break;
+    case -1:
+        printErr("Error: El proceso no existe.\n");
+        break;
+    case -2:
+        printErr("Error: No se puede desbloquear el proceso.\n");
+        break;
+    default:
+        printErr("Error desconocido al desbloquear el proceso.\n");
+    }
+}

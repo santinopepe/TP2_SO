@@ -11,22 +11,13 @@
 #include <globals.h>
 
 
-#define MAX_PROCESOS 1000
+
 #define STACK_SIZE 0x1000 //4kb
 #define MIN_QUANTUM 1
 
 static void * SchedulerPointer = NULL;  
 
-typedef struct SchedulerCDT{
-    Process process[MAX_PROCESOS]; //array de procesos, cada posicion es el pid del proceso
-    uint8_t processCount; //cantidad de procesos en el array
-    DoubleLinkedListADT readyList;
-    DoubleLinkedListADT blockedList;
-    uint8_t currentPID; 
-    uint64_t quantum; 
-    uint8_t killFgProcess; //se enciende en uno si se quiere matar al proceso en foreground
-    uint8_t hasStarted;
-}SchedulerCDT;
+
 
 SchedulerADT getSchedulerADT(){
     return SchedulerPointer; 
@@ -292,22 +283,22 @@ void processSwitch() {
     scheduler->process[scheduler->currentPID].status = RUNNING;
 }
 
-int blockProcess(){ //bloquea el proceso, lo saca de la lista de listos y lo agrega a la lista de bloqueados
+int blockProcess(uint16_t pid){ //bloquea el proceso, lo saca de la lista de listos y lo agrega a la lista de bloqueados
     SchedulerADT scheduler = getSchedulerADT();
     if(scheduler==NULL){
         return -1 ; 
     }
-    uint16_t pid = scheduler->currentPID;
+    
     
 
-    if(scheduler->process[scheduler->currentPID].status == RUNNING){ 
-        scheduler->process[scheduler->currentPID].status = BLOCKED; 
+    if(scheduler->process[pid].status == RUNNING){ 
+        scheduler->process[pid].status = BLOCKED; 
         processSwitch();
         removeElement(scheduler->readyList, &scheduler->process[pid].PID);
         insertLast(scheduler->blockedList, &scheduler->process[pid].PID); //agrega el proceso a la lista de bloqueados
 
-    } else if (scheduler->process[scheduler->currentPID].status == READY){
-        scheduler->process[scheduler->currentPID].status = BLOCKED; 
+    } else if (scheduler->process[pid].status == READY){
+        scheduler->process[pid].status = BLOCKED; 
         removeElement(scheduler->readyList, &scheduler->process[pid].PID);
         insertLast(scheduler->blockedList, &scheduler->process[pid].PID); //agrega el proceso a la lista de bloqueados
     }

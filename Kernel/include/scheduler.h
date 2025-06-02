@@ -3,9 +3,22 @@
 
 #include <stdint.h> 
 #include <process.h>
+#include <doubleLinkedListADT.h>
+
 
 #define MIN_QUANTUM 10 
 #define STACK_SIZE 0x1000 //4kb
+
+typedef struct SchedulerCDT{
+    Process process[MAX_PROCESOS]; //array de procesos, cada posicion es el pid del proceso
+    uint8_t processCount; //cantidad de procesos en el array
+    DoubleLinkedListADT readyList;
+    DoubleLinkedListADT blockedList;
+    uint8_t currentPID; 
+    uint64_t quantum; 
+    uint8_t killFgProcess; //se enciende en uno si se quiere matar al proceso en foreground
+    uint8_t hasStarted;
+}SchedulerCDT;
 
 typedef struct SchedulerCDT * SchedulerADT; 
 
@@ -28,7 +41,7 @@ SchedulerADT createScheduler();
 
 int unblockProcess(uint16_t pid);
 
-int blockProcess();
+int blockProcess(uint16_t pid);
 
 Process *findProcess(uint16_t pid); //devuelve el proceso con el pid pasado por parametro o NULL si no existe el proceso
 

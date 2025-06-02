@@ -72,7 +72,7 @@ uint16_t waitForChildren(uint16_t pid){
     }
     Process *process = findProcess(pid); //si eventualmente hacemos una lista de bloqueados
 
-    blockProcess(); //bloquea el proceso que está corriendo
+    blockProcess(scheduler->currentPID); //bloquea el proceso que está corriendo
     //addToBlocked 
     return 0; 
 }   

@@ -7,6 +7,8 @@
 #define STDOUT 1 
 #define STDERR 2 
 
+#define MAX_PROCESOS 1000
+
 extern uint16_t fileDescriptors[3];
 
 typedef struct MemoryInfoCDT{
