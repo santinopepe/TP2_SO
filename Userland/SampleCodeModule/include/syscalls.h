@@ -249,6 +249,8 @@ void processInfo(ProcessData * process);
 
 void yield();
 
+uint16_t waitForChildren(uint16_t pid);
 
+void wait_time(uint32_t delta);
 
 #endif

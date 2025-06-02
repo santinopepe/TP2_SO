@@ -174,7 +174,7 @@ void yield(){ //funcion para renuciar al cpu, para ceder su espacio a otro proce
 // Los parametros de la funcion a ejecutar
 
 uint16_t createProcess(EntryPoint originalEntryPoint, char **argv, int argc, uint8_t priority, uint16_t fileDescriptors[]) {
-    if (originalEntryPoint == NULL || argv == NULL || argc < 0 || fileDescriptors == NULL) {
+    if (originalEntryPoint == NULL || argv == NULL || argc < 0) {
         return -1;
     }
 
@@ -200,7 +200,7 @@ uint16_t createProcess(EntryPoint originalEntryPoint, char **argv, int argc, uin
     scheduler->process[pid].priority = priority;
     scheduler->process[pid].quantum = MIN_QUANTUM* (1 + priority);
     scheduler->quantum = (pid == 0) ? 1: scheduler->process[pid].quantum; // Si es el primer proceso, no se cambia el quantum del scheduler
-    scheduler->process[pid].foreground = 0;
+    scheduler->process[pid].foreground = fileDescriptors[0] == STDIN ? 1 : 0; // Si el primer file descriptor es STDIN, es un proceso en foreground
     scheduler->process[pid].rip = (EntryPoint)processWrapper;
 
     scheduler->process[pid].argc = argc;

@@ -13,6 +13,8 @@
 #include <globals.h>
 #include <phylo.h>
 
+#define TICKS 0.055
+
 #define ES_VOCAL(n) ((n) == 'a' || (n) == 'e' || (n) == 'i' || (n) == 'o' || (n) == 'u' || \
                             (n) == 'A' || (n) == 'E' || (n) == 'I' || (n) == 'O' || (n) == 'U')
 
@@ -78,6 +80,7 @@ static int wc(int argc, char *argv[]);
 static int cat(int argc, char *argv[]);
 static void filter(int argc, char *argv[]);
 static void ps(int argc, char *argv[]);
+static void loop(int argc, char *argv[]);
 
 
 static Command commands[] = {
@@ -93,14 +96,13 @@ static Command commands[] = {
     {"printmem", "Realiza un vuelco de memoria de los 32 bytes posteriores a una direccion de memoria en formato hexadecimal enviada por parametro", (CommandFunction)printMem},
     {"clear", "Limpia toda la pantalla", (CommandFunction)myClear},
     {"nice", "Cambia la prioridad de un proceso. Uso: nice <pid> <prioridad>", (CommandFunction)niceWrapper},
-    {"set-status", "Cambia el estado de un proceso. Uso: set-status <pid> <estado>", (CommandFunction)setStatusWrapper},
     {"block", "Bloquea un proceso. Uso: block <pid>", (CommandFunction)blockProcess},
     {"unblock", "Desbloquea un proceso. Uso: unblock <pid>", (CommandFunction)unblockProcess},
     {"kill", "Elimina un proceso. Uso: kill <pid>", (CommandFunction)kill},
-    {"test-processes", "Ejecuta un test de procesos. Uso: test-processes <cantidad>", (CommandFunction)test_processesWrapper},
-    {"test-priority", "Ejecuta un test de prioridades. Uso: test-priority", (CommandFunction)test_prioWrapper},
+    {"test-processes", "Ejecuta un test de procesos. Uso: test-processes <cantidad>", (CommandFunction)test_processes},
+    {"test-priority", "Ejecuta un test de prioridades. Uso: test-priority", (CommandFunction)test_prio},
     {"test-mm", "Ejecuta un test de memoria. Uso: test-mm <max_memory>", (CommandFunction)test_mm},
-    {"test-sync", "Ejectua un test de sincronizacion. Uso; test-sync <sem>", (CommandFunction)test_syncWrapper},
+    {"test-sync", "Ejectua un test de sincronizacion. Uso; test-sync <sem>", (CommandFunction)test_sync},
     {"mem", "Muestra informacion de la memoria del sistema", (CommandFunction)mem},
     {"wc", "Cuenta la cantidad de lineas del input", (CommandFunction)wc},
     {"filter", "Filtra las vocales del input", (CommandFunction)filter},
@@ -108,6 +110,38 @@ static Command commands[] = {
     {"phylo", "Ejecuta la simulacion del problema de los filosofos comensales", (CommandFunction)phylo},
     {"ps", "Muestra la informacion de los procesos vivos", (CommandFunction)ps},
 };
+
+static Command builtInCommands[] = {
+    {"help", "Listado de comandos", (CommandFunction)help},
+    {"man", "Manual de uso de los comandos", (CommandFunction)man},
+    {"inforeg", "Informacion de los registos que fueron capturados en un momento arbitrario de ejecucion del sistema", (CommandFunction)printInfoReg},
+    {"time", "Despliega la hora actual UTC - 3", (CommandFunction)time},
+    {"div", "Hace la division entera de dos numeros naturales enviados por parametro Uso: div <numerador> <denominador>", (CommandFunction)div},
+    {"kaboom", "Ejecuta una excepcion de Invalid Opcode", (CommandFunction)kaboom},
+    {"tron", "Juego Tron Light Cycles", (CommandFunction)tron},
+    {"tron-zen", "Juego Tron Light Cycles con un unico jugador", (CommandFunction)tronZen},
+    {"font-size", "Cambio de dimensiones de la fuente. Para hacerlo escribir el comando seguido de un numero", (CommandFunction)fontSize},
+    {"clear", "Limpia toda la pantalla", (CommandFunction)myClear},
+    {"nice", "Cambia la prioridad de un proceso. Uso: nice <pid> <prioridad>", (CommandFunction)niceWrapper},
+    {"block", "Bloquea un proceso. Uso: block <pid>", (CommandFunction)blockProcess},
+    {"unblock", "Desbloquea un proceso. Uso: unblock <pid>", (CommandFunction)unblockProcess},
+    {"kill", "Elimina un proceso. Uso: kill <pid>", (CommandFunction)kill},
+    {"test-mm", "Ejecuta un test de memoria. Uso: test-mm <max_memory>", (CommandFunction)test_mm},
+    {"mem", "Muestra informacion de la memoria del sistema", (CommandFunction)mem},
+    {"cat", "Imprime el STDIN tal como lo recibe", (CommandFunction)cat},
+    {"ps", "Muestra la informacion de los procesos vivos", (CommandFunction)ps},
+};
+
+static Command processCommands[] = {
+    {"test-processes", "Ejecuta un test de procesos. Uso: test-processes <cantidad>", (CommandFunction)test_processes},
+    {"test-priority", "Ejecuta un test de prioridades. Uso: test-priority", (CommandFunction)test_prio},
+    {"test-sync", "Ejectua un test de sincronizacion. Uso: test-sync <sem>", (CommandFunction)test_sync},
+    {"wc", "Cuenta la cantidad de lineas del input", (CommandFunction)wc},
+    {"filter", "Filtra las vocales del input", (CommandFunction)filter},
+    {"phylo", "Ejecuta la simulacion del problema de los filosofos comensales", (CommandFunction)phylo},
+    {"loop", "Imprime su ID con un saludo cada una determinada cantidad de segundos. Uso: loop <cantidad de segundos>", (CommandFunction)loop},
+};
+
 
 void run_shell()
 {
@@ -136,7 +170,6 @@ void run_shell()
             }
             continue;
         }
-
         executePipedCommands(command);
 
         freeCommandADT(command);
@@ -278,26 +311,6 @@ static int niceWrapper(uint16_t pid, uint8_t priority)
         break;
     default:
         printErr("Error desconocido al cambiar la prioridad del proceso.\n");
-    }
-    return result;
-}
-
-static int setStatusWrapper(uint16_t pid, ProcessStatus status)
-{
-    int result = setStatus(pid, status);
-    switch (result)
-    {
-    case 0:
-        printf("Estado del proceso %u cambiado exitosamente.\n", pid);
-        break;
-    case -1:
-        printErr("Error: El proceso no existe.\n");
-        break;
-    case -2:
-        printErr("Error: No se puede cambiar el estado del proceso.\n");
-        break;
-    default:
-        printErr("Error desconocido al cambiar el estado del proceso.\n");
     }
     return result;
 }
@@ -449,7 +462,24 @@ static void executePipedCommands(CommandADT command)
             continue;
         }
 
-        commands[cmd_index_in_shell].f(argc, argv);
+        if (isBuiltinCommand(cmdName)) {
+            // Ejecutar directamente en la shell
+            commands[cmd_index_in_shell].f(argc, argv);
+        }
+        else{
+            if(getIsBackground(command, i)){
+                uint16_t fileDescriptors[] = {-1, STDIN, STDERR};
+                createProcess((uint64_t)commands[cmd_index_in_shell].f, argv, argc, 1, fileDescriptors);
+                continue;
+            }
+            else{
+                uint16_t fileDescriptors[] = {STDIN, STDOUT, STDERR};
+                uint16_t pid = createProcess((uint64_t)commands[cmd_index_in_shell].f, argv, argc, 1, fileDescriptors);
+                waitForChildren(pid);
+            }
+        }
+
+        //commands[cmd_index_in_shell].f(argc, argv);
 
         if (i < qtyPrograms - 1)
         {
@@ -572,25 +602,6 @@ static void kill(int argc, char *argv[])
     }
 }
 
-static void test_processesWrapper(int argc, char *argv[])
-{
-    createProcess((uint64_t)test_processes, argv, argc, atoi(argv[1]), fileDescriptors);
-    return;
-}
-
-static void test_syncWrapper(int argc, char *argv[])
-{
-    createProcess((uint64_t)test_sync, argv, argc, atoi(argv[1]), fileDescriptors);
-    return;
-}
-
-static void test_prioWrapper(int argc, char *argv[])
-{
-    createProcess((uint64_t) test_prio, argv, argc, atoi(argv[1]), fileDescriptors);
-    return;
-}
-
-
 static void filter(int argc, char *argv[])
 {
     if (argc != 2)
@@ -626,4 +637,35 @@ static int wc(int argc, char *argv[]){
     }
     printf("La cantidad de lineas: %d\n", lineCounter);
     return 0;
+}
+
+
+int isBuiltinCommand(const char *cmdName) {
+    // Recorre el array de built-in commands
+    for (int i = 0; i < QTY_BUILTIN_COMMANDS; i++) {
+        if (strcmp(builtInCommands[i].name, cmdName) == 0)
+            return 1;
+    }
+    return 0;
+} 
+
+static void loop(int argc, char *argv[]) {
+	if (argc != 2) {
+		printf("You must insert ONE parameter indicating the number of seconds you desire to test\n");
+		return;
+	}
+	int secs = atoi(argv[1]);
+
+	if (secs < 0) {
+		printf("Number of seconds must be greater than 0\n");
+		return;
+	}
+	int realTime = secs / TICKS;
+
+	while (1) {
+		printf("Hello World! PID: %d\n", getPid());
+		wait_time(realTime);
+	}
+
+	return;
 }

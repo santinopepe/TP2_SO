@@ -16,4 +16,6 @@ uint64_t ticksElapsed();
  */
 int secondsElapsed();
 
+void wait_time(int delta);
+
 #endif
