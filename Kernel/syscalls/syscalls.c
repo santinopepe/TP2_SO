@@ -11,7 +11,7 @@
 #include <pipeManager.h>
 #include <semaphoresManager.h>
 #include <scheduler.h>
-#include <time.h>
+#include "./include/time.h"
 
 /* File Descriptors*/
 #define STDIN 0
