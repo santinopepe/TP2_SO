@@ -36,7 +36,7 @@ static int current_stdin_fd = 0;
 static int current_stdout_fd = 1;
 
 
-#define WELCOME "Bienvenido a Cactiland OS!\n"
+#define WELCOME "Bienvenido a SIM SIM OS!\n"
 #define INVALID_COMMAND "Comando invalido!\n"
 #define WRONG_PARAMS "La cantidad de parametros ingresada es invalida\n"
 #define INVALID_FONT_SIZE "Dimension invalida de fuente\n"
@@ -480,7 +480,7 @@ static void executePipedCommands(CommandADT command)
 static void mem(int argc, char *argv[])
 {
     MemoryInfoADT memInfo;
-    memInfo = getMemoryInfo(memInfo);
+    memInfo = getMemoryInfo(memInfo); 
 
     if (memInfo == NULL)
     {
@@ -489,30 +489,72 @@ static void mem(int argc, char *argv[])
     }
 
     printf("Tipo de memoria: %s\n", memInfo->memoryType);
-
     printf("Tamanio de pagina: %d bytes\n", memInfo->pageSize);
-
     printf("Total de paginas: %d\n", memInfo->totalPages);
-
     printf("Memoria total: %d bytes\n", memInfo->totalMemory);
-    for (int i = 0; i < 10; i++)
-    {
-        printf("=");
-    }
-    putchar('\n');
-
-    printf("Memoria libre: %d bytes\n", memInfo->freeMemory);
-    for (int i = 0; i < memInfo->freeMemory % 10; i++)
-    {
-        printf("=");
-    }
 
     putchar('\n');
 
-    printf("Memoria usada: %d bytes\n", memInfo->usedMemory);
-    for (int i = 0; i < memInfo->usedMemory % 10; i++)
+    
+    int bar_width = 15; 
+
+    if (memInfo->totalMemory > 0) // Evitar división por cero si totalMemory es 0
     {
-        printf("=");
+
+        printf("Memoria total: %d bytes [", memInfo->totalMemory);
+        int total_chars = (int)(((double)memInfo->totalMemory / memInfo->totalMemory) * bar_width);
+        for (int i = 0; i < total_chars; i++)
+        {
+            putchar('='); // Usar un caracter diferente para la memoria total
+        }
+        for (int i = total_chars; i < bar_width; i++)
+        {
+            putchar(' '); // Rellenar el resto con espacios
+        }
+        printf("] 100.00%%\n");
+
+        // Barra para memoria libre
+        printf("Memoria libre: %d bytes [", memInfo->freeMemory);
+        int free_chars = (int)(((double)memInfo->freeMemory / memInfo->totalMemory) * bar_width);
+        for (int i = 0; i < free_chars; i++)
+        {
+            putchar('=');
+        }
+        for (int i = free_chars; i < bar_width; i++)
+        {
+            putchar(' '); // Rellenar el resto con espacios
+        }
+        // Calcular porcentaje para memoria libre
+        uint64_t free_percentage_scaled = ((uint64_t)memInfo->freeMemory * 10000) / memInfo->totalMemory;
+        printf("] %d.", (int)(free_percentage_scaled / 100)); // Parte entera
+        if ((free_percentage_scaled % 100) < 10) {
+            putchar('0'); // Añadir cero inicial si es necesario
+        }
+        printf("%d%%\n", (int)(free_percentage_scaled % 100)); // Parte decimal
+
+
+        
+        printf("Memoria usada: %d bytes [", memInfo->usedMemory);
+        int used_chars = (int)(((double)memInfo->usedMemory / memInfo->totalMemory) * bar_width);
+        for (int i = 0; i < used_chars; i++)
+        {
+            putchar('#'); 
+        }
+        for (int i = used_chars; i < bar_width; i++)
+        {
+            putchar(' '); 
+        }
+        uint64_t used_percentage_scaled = ((uint64_t)memInfo->usedMemory * 10000) / memInfo->totalMemory;
+        printf("] %d.", (int)(used_percentage_scaled / 100)); // Parte entera
+        if ((used_percentage_scaled % 100) < 10) {
+            putchar('0'); 
+        }
+        printf("%d%%\n", (int)(used_percentage_scaled % 100));
+    }
+    else
+    {
+        printf("Memoria libre: %d bytes [ No disponible ]\n", memInfo->freeMemory);
+        printf("Memoria usada: %d bytes [ No disponible ]\n", memInfo->usedMemory);
     }
 
     putchar('\n');
@@ -520,7 +562,7 @@ static void mem(int argc, char *argv[])
 
 static void ps(int argc, char *argv[])
 {
-    if (argc != 2)
+    if (argc != 1)
     {
         printErr("Uso: ps\n");
         return;
