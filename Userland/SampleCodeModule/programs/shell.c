@@ -111,6 +111,7 @@ static Command commands[] = {
     {"cat", "Imprime el STDIN tal como lo recibe", (CommandFunction)cat},
     {"phylo", "Ejecuta la simulacion del problema de los filosofos comensales", (CommandFunction)phylo},
     {"ps", "Muestra la informacion de los procesos vivos", (CommandFunction)ps},
+    {"loop", "Imprime su ID con un saludo cada una determinada cantidad de segundos. Uso: loop <cantidad de segundos>", (CommandFunction)loop},
 };
 
 static Command builtInCommands[] = {
