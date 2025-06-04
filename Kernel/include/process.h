@@ -3,8 +3,8 @@
 
 #include <stdint.h>
 #include <globals.h>
+#include <doubleLinkedListADT.h>
 
-typedef int (*EntryPoint)();
 
 #define CANT_FILE_DESCRIPTORS 3
 
@@ -21,9 +21,12 @@ typedef struct process{
     uint16_t foreground;
     uint64_t stack;
     uint64_t basePointer;
-    uint16_t PID;
     int16_t fileDescriptors[CANT_FILE_DESCRIPTORS];
 
+    uint16_t PID;
+    uint16_t parentPID;
+    DoubleLinkedListADT children; // Lista de hijos del proceso
+    int8_t children_sem; // Semáforo para esperar a los hijos
 } Process;
 
 

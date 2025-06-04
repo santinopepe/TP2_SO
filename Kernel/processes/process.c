@@ -63,16 +63,23 @@ void freeProcess(Process *process){
     free(process);
 }
 
-uint16_t waitForChildren(uint16_t pid){ 
-    //devuelve 0 si pudo esperar a los hijos, -1 si no existe el proceso 
-    //o -2 si no se puede esperar a=los hi && (priority > 3 && priority < 0)jos
-    SchedulerADT scheduler = getSchedulerADT(); 
-    if(scheduler == NULL){
-        return -1; 
-    }
-    Process *process = findProcess(pid); //si eventualmente hacemos una lista de bloqueados
+uint16_t waitForChildren(uint16_t pid) {
+    SchedulerADT scheduler = getSchedulerADT();
+    if (scheduler == NULL) return -1;
 
-    blockProcess(scheduler->currentPID); //bloquea el proceso que está corriendo
-    //addToBlocked 
-    return 0; 
-}   
+    
+
+    Process *parent = &scheduler->process[pid];
+    if (parent == NULL || parent->status == DEAD) return -1;
+
+    if (parent->children == NULL || isEmpty(parent->children)) return 0;
+
+    if (parent->children_sem == -1) {
+        parent->children_sem = parent->PID + 2;
+        create_sem(parent->children_sem, 0);
+        sem_open(parent->children_sem);
+    }
+    sem_wait(parent->children_sem);
+
+    return 0;
+}
