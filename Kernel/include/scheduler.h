@@ -6,7 +6,7 @@
 #include <doubleLinkedListADT.h>
 
 
-#define MIN_QUANTUM 10 
+#define MIN_QUANTUM 1
 #define STACK_SIZE 0x1000 //4kb
 
 typedef struct SchedulerCDT{

@@ -472,13 +472,13 @@ static void executePipedCommands(CommandADT command)
         else{
             if(getIsBackground(command, i)){
                 uint16_t fileDescriptors[] = {-1, STDIN, STDERR};
-                createProcess((uint64_t)commands[cmd_index_in_shell].f, argv, argc, atoi(argv[1]), fileDescriptors);
+                createProcess((uint64_t)commands[cmd_index_in_shell].f, argv, argc, 0, fileDescriptors);
                 continue;
             }
             else{
                 uint16_t fileDescriptors[] = {STDIN, STDOUT, STDERR};
-                uint16_t pid = createProcess((uint64_t)commands[cmd_index_in_shell].f, argv, argc, atoi(argv[1]), fileDescriptors);
-                //waitForChildren(pid);
+                uint16_t pid = createProcess((uint64_t)commands[cmd_index_in_shell].f, argv, argc, 0, fileDescriptors);
+                waitForChildren(pid);
             }
         }
 

@@ -13,7 +13,6 @@
 
 
 #define STACK_SIZE 0x1000 //4kb
-#define MIN_QUANTUM 1
 
 static void * SchedulerPointer = NULL;  
 
@@ -115,6 +114,17 @@ int killProcess(uint16_t pid) {
     scheduler->process[pid].fileDescriptors[1] = 0;
     scheduler->process[pid].fileDescriptors[2] = 0;
 
+    uint16_t parentPID = scheduler->process[pid].parentPID;
+    if (parentPID != pid && scheduler->process[parentPID].children != NULL) {
+        // Elimina el hijo de la lista de hijos del padre
+        removeElement(scheduler->process[parentPID].children, &scheduler->process[pid].PID);
+
+        // Si la lista está vacía, todos los hijos terminaron
+        if (isEmpty(scheduler->process[parentPID].children)) {
+            sem_post(scheduler->process[parentPID].children_sem);
+        }
+    }
+
     scheduler->processCount--;
     if(pid == scheduler->currentPID) {
         yield(); // cede el CPU al siguiente proceso
@@ -195,6 +205,16 @@ uint16_t createProcess(EntryPoint originalEntryPoint, char **argv, int argc, uin
     scheduler->process[pid].rip = (EntryPoint)processWrapper;
 
     scheduler->process[pid].argc = argc;
+
+
+    uint16_t parentPID = scheduler->currentPID;
+    scheduler->process[pid].parentPID = parentPID;
+    scheduler->process[pid].children = createDoubleLinkedList();
+    scheduler->process[pid].children_sem = -1;
+
+    if (parentPID != pid) { // Evita que el proceso 0 se agregue a sí mismo        
+        insertLast(scheduler->process[parentPID].children, &scheduler->process[pid].PID);
+    }
 
     scheduler->process[pid].name = malloc(strlen(argv[0]) + 1);
     if (scheduler->process[pid].name == NULL) {
