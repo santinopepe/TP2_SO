@@ -66,8 +66,7 @@ static void printMem(char *pos);
 static int getCommandIndex(char *command);
 static void myClear();
 static void kill(int argc, char *argv[]);
-static int niceWrapper(uint16_t pid, uint8_t priority);
-static int setStatusWrapper(uint16_t pid, ProcessStatus status);
+static int niceWrapper(int argc, char *argv[]);
 static void blockProcessWrapper(int argc, char *argv[]);
 static void unblockProcessWrapper(int argc, char *argv[]);
 
@@ -99,8 +98,8 @@ static Command commands[] = {
     {"printmem", "Realiza un vuelco de memoria de los 32 bytes posteriores a una direccion de memoria en formato hexadecimal enviada por parametro", (CommandFunction)printMem},
     {"clear", "Limpia toda la pantalla", (CommandFunction)myClear},
     {"nice", "Cambia la prioridad de un proceso. Uso: nice <pid> <prioridad>", (CommandFunction)niceWrapper},
-    {"block", "Bloquea un proceso. Uso: block <pid>", (CommandFunction)blockProcess},
-    {"unblock", "Desbloquea un proceso. Uso: unblock <pid>", (CommandFunction)unblockProcess},
+    {"block", "Bloquea un proceso. Uso: block <pid>", (CommandFunction)blockProcessWrapper},
+    {"unblock", "Desbloquea un proceso. Uso: unblock <pid>", (CommandFunction)unblockProcessWrapper},
     {"kill", "Elimina un proceso. Uso: kill <pid>", (CommandFunction)kill},
     {"test-processes", "Ejecuta un test de procesos. Uso: test-processes <cantidad>", (CommandFunction)test_processes},
     {"test-priority", "Ejecuta un test de prioridades. Uso: test-priority", (CommandFunction)test_prio},
@@ -300,13 +299,20 @@ static void myClear()
     clear();
 }
 
-static int niceWrapper(uint16_t pid, uint8_t priority)
+static int niceWrapper(int argc, char *argv[])
 {
-    int result = setPriority(pid, priority);
+    if (argc != 3)
+    {
+        printErr(WRONG_PARAMS);
+        puts("Uso: nice <pid> <prioridad>");
+        return -1;
+    }
+
+    int result = setPriority(atoi(argv[1]), atoi(argv[2]));
     switch (result)
     {
     case 0:
-        printf("Prioridad del proceso %u cambiada a %u exitosamente.\n", pid, priority);
+        printf("Prioridad del proceso %d cambiada a %d exitosamente.\n", atoi(argv[1]), atoi(argv[2]));
         break;
     case -1:
         printErr("Error: El proceso no existe.\n");
@@ -480,11 +486,7 @@ static void executePipedCommands(CommandADT command)
             else{
                 uint16_t fileDescriptors[] = {STDIN, STDOUT, STDERR};
                 uint16_t pid = createProcess((uint64_t)commands[cmd_index_in_shell].f, argv, argc, 0, fileDescriptors);
-<<<<<<< Updated upstream
                 waitForChildren(pid);
-=======
-                //waitForChildren(pid);
->>>>>>> Stashed changes
             }
         }
 
