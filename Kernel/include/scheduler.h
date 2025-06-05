@@ -16,7 +16,6 @@ typedef struct SchedulerCDT{
     DoubleLinkedListADT blockedList;
     uint8_t currentPID; 
     uint64_t quantum; 
-    uint8_t killFgProcess; //se enciende en uno si se quiere matar al proceso en foreground
     uint8_t hasStarted;
 }SchedulerCDT;
 

@@ -37,7 +37,6 @@ SchedulerADT createScheduler(){
     scheduler->processCount = 0;
     scheduler->quantum = MIN_QUANTUM;
     scheduler->currentPID = 0; 
-    scheduler->killFgProcess = 0; 
     scheduler->hasStarted = 0; 
 
     for(int i = 0; i < MAX_PROCESOS; i++){
@@ -64,10 +63,18 @@ int killForegroundProcess(){
     if(scheduler == NULL){
         return -2; 
     }
-    if (scheduler->currentPID == 0 ) {
-        return -1; 
+    uint8_t has_processes = 0;
+    for (int i = 0; i < MAX_PROCESOS; i++) {
+        // Suponiendo que el proceso 0 es la shell, o guardás el PID de la shell en una variable
+        if ( i != 0 && scheduler->process[i].status != DEAD && scheduler->process[i].fileDescriptors[STDIN] == STDIN ) // o i != shellPID
+        {
+            has_processes = 1; // Hay al menos un proceso en foreground
+            killProcess(i);
+        }
     }
-    scheduler->killFgProcess = 1;
+    if (!has_processes) {
+        return -1; // No hay procesos en foreground
+    }
     return 0; 
 }   
 
@@ -420,10 +427,6 @@ void *schedule(void *prevStackPointer) {
 
     uint16_t currentPID = scheduler->currentPID;
 
-    if(scheduler->killFgProcess && scheduler->process[currentPID].fileDescriptors[STDIN] == STDIN){
-        scheduler->killFgProcess=0;
-        killProcess(currentPID);
-    }
 
     return scheduler->process[scheduler->currentPID].rsp;
 }
