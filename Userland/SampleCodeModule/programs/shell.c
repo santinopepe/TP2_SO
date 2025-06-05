@@ -468,13 +468,39 @@ static void executePipedCommands(CommandADT command)
             commands[cmd_index_in_shell].f(argc, argv);
         }
         else{
+            uint8_t pipe_fd = getCommandStdout(command, 0);
             if(getIsBackground(command, i)){
-                uint16_t fileDescriptors[] = {-1, STDIN, STDERR};
+                if(i==0){
+                    uint16_t fileDescriptors[] = {
+                    -1,
+                    pipe_fd,
+                    STDERR
+                    };
+                }
+                else{
+                    uint16_t fileDescriptors[] = {
+                        pipe_fd,   
+                        STDOUT,
+                        STDERR
+                    };
+                }
                 createProcess((EntryPoint)commands[cmd_index_in_shell].f, argv, argc, 0, fileDescriptors);
                 continue;
             }
             else{
-                uint16_t fileDescriptors[] = {STDIN, STDOUT, STDERR};
+                if(i==0){}
+                    uint16_t fileDescriptors[] = {
+                        STDIN,   // stdin: puede ser un pipe_fd o el stdin original
+                        pipe_fd,  // stdout: puede ser un pipe_fd o el stdout original
+                        STDERR
+                    };
+                }
+                else{
+                    uint16_t fileDescriptors[] = {
+                        pipe_fd,   // stdin: puede ser un pipe_fd o el stdin original
+                        STDOUT,  // stdout: puede ser un pipe_fd o el stdout original
+                        STDERR
+                    };
                 uint16_t pid = createProcess((EntryPoint)commands[cmd_index_in_shell].f, argv, argc, 0, fileDescriptors);
                 waitForChildren(pid);
             }
