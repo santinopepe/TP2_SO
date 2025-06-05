@@ -84,6 +84,7 @@ static void filter(int argc, char *argv[]);
 static void ps(int argc, char *argv[]);
 static void loop(int argc, char *argv[]);
 
+static void printQuantityBars(uint64_t total, uint64_t consumed); 
 
 static Command commands[] = {
     {"help", "Listado de comandos", (CommandFunction)help},
@@ -129,7 +130,6 @@ static Command builtInCommands[] = {
     {"block", "Bloquea un proceso. Uso: block <pid>", (CommandFunction)blockProcessWrapper},
     {"unblock", "Desbloquea un proceso. Uso: unblock <pid>", (CommandFunction)unblockProcessWrapper},
     {"kill", "Elimina un proceso. Uso: kill <pid>", (CommandFunction)kill},
-    {"test-mm", "Ejecuta un test de memoria. Uso: test-mm <max_memory>", (CommandFunction)test_mm},
     {"mem", "Muestra informacion de la memoria del sistema", (CommandFunction)mem},
     {"cat", "Imprime el STDIN tal como lo recibe", (CommandFunction)cat},
     {"ps", "Muestra la informacion de los procesos vivos", (CommandFunction)ps},
@@ -143,6 +143,8 @@ static Command processCommands[] = {
     {"filter", "Filtra las vocales del input", (CommandFunction)filter},
     {"phylo", "Ejecuta la simulacion del problema de los filosofos comensales", (CommandFunction)phylo},
     {"loop", "Imprime su ID con un saludo cada una determinada cantidad de segundos. Uso: loop <cantidad de segundos>", (CommandFunction)loop},
+    {"test-mm", "Ejecuta un test de memoria. Uso: test-mm <max_memory>", (CommandFunction)test_mm},
+
 };
 
 
@@ -478,7 +480,11 @@ static void executePipedCommands(CommandADT command)
             else{
                 uint16_t fileDescriptors[] = {STDIN, STDOUT, STDERR};
                 uint16_t pid = createProcess((uint64_t)commands[cmd_index_in_shell].f, argv, argc, 0, fileDescriptors);
+<<<<<<< Updated upstream
                 waitForChildren(pid);
+=======
+                //waitForChildren(pid);
+>>>>>>> Stashed changes
             }
         }
 
@@ -512,84 +518,71 @@ static void executePipedCommands(CommandADT command)
 
 static void mem(int argc, char *argv[])
 {
-    MemoryInfoADT memInfo;
-    memInfo = getMemoryInfo(memInfo); 
-
-    if (memInfo == NULL)
+    if (argc != 1)
     {
-        printErr("Error al obtener la informacion de memoria.\n");
+        printErr("Uso: mem\n");
         return;
     }
 
-    printf("Tipo de memoria: %s\n", memInfo->memoryType);
-    printf("Tamanio de pagina: %d bytes\n", memInfo->pageSize);
-    printf("Total de paginas: %d\n", memInfo->totalPages);
-    printf("Memoria total: %d bytes\n", memInfo->totalMemory);
+  
 
-    putchar('\n');
+
+    uint64_t usedMemory = getUsedMemory();
+    uint64_t freeMemory = getFreeMemory();
+    uint64_t totalMemory = usedMemory + freeMemory;
+
+    char *memoryType = getMemoryType();
+    
+    printf("Tipo de memoria: %s\n", memoryType);
+
+    if(strcmp(memoryType, "Bitmap") == 0)
+    {
+        printf("Bloques totales: %d \n", totalMemory);
+        printQuantityBars(totalMemory, totalMemory);
+        printf("Bloques libres: %d \n", freeMemory);
+        printQuantityBars(freeMemory, totalMemory);
+        printf("Bloques usados: %d \n", usedMemory);
+        printQuantityBars(totalMemory, usedMemory);
+    } else{
+        printf("Memoria total: %d bytes\n", totalMemory);
+        printQuantityBars(totalMemory, totalMemory);
+        printf("Memoria libre: %d bytes\n", freeMemory);
+        printQuantityBars(totalMemory, freeMemory);
+        printf("Memoria usada: %d bytes\n", usedMemory);
+        printQuantityBars(totalMemory, usedMemory);
+    }
+   
+  
+}
+
+static void printQuantityBars(uint64_t total, uint64_t consumed){
+    int percentage = 0;
+    if (total > 0) {
+        percentage = (int)(((uint64_t)consumed * 100) / total);
+    }
 
     
-    int bar_width = 15; 
-
-    if (memInfo->totalMemory > 0) // Evitar división por cero si totalMemory es 0
-    {
-
-        printf("Memoria total: %d bytes [", memInfo->totalMemory);
-        int total_chars = (int)(((double)memInfo->totalMemory / memInfo->totalMemory) * bar_width);
-        for (int i = 0; i < total_chars; i++)
-        {
-            putchar('='); // Usar un caracter diferente para la memoria total
-        }
-        for (int i = total_chars; i < bar_width; i++)
-        {
-            putchar(' '); // Rellenar el resto con espacios
-        }
-        printf("] 100.00%%\n");
-
-        // Barra para memoria libre
-        printf("Memoria libre: %d bytes [", memInfo->freeMemory);
-        int free_chars = (int)(((double)memInfo->freeMemory / memInfo->totalMemory) * bar_width);
-        for (int i = 0; i < free_chars; i++)
-        {
-            putchar('=');
-        }
-        for (int i = free_chars; i < bar_width; i++)
-        {
-            putchar(' '); // Rellenar el resto con espacios
-        }
-        // Calcular porcentaje para memoria libre
-        uint64_t free_percentage_scaled = ((uint64_t)memInfo->freeMemory * 10000) / memInfo->totalMemory;
-        printf("] %d.", (int)(free_percentage_scaled / 100)); // Parte entera
-        if ((free_percentage_scaled % 100) < 10) {
-            putchar('0'); // Añadir cero inicial si es necesario
-        }
-        printf("%d%%\n", (int)(free_percentage_scaled % 100)); // Parte decimal
-
-
-        
-        printf("Memoria usada: %d bytes [", memInfo->usedMemory);
-        int used_chars = (int)(((double)memInfo->usedMemory / memInfo->totalMemory) * bar_width);
-        for (int i = 0; i < used_chars; i++)
-        {
-            putchar('#'); 
-        }
-        for (int i = used_chars; i < bar_width; i++)
-        {
-            putchar(' '); 
-        }
-        uint64_t used_percentage_scaled = ((uint64_t)memInfo->usedMemory * 10000) / memInfo->totalMemory;
-        printf("] %d.", (int)(used_percentage_scaled / 100)); // Parte entera
-        if ((used_percentage_scaled % 100) < 10) {
-            putchar('0'); 
-        }
-        printf("%d%%\n", (int)(used_percentage_scaled % 100));
+    if (percentage < 0) {
+        percentage = 0;
     }
-    else
-    {
-        printf("Memoria libre: %d bytes [ No disponible ]\n", memInfo->freeMemory);
-        printf("Memoria usada: %d bytes [ No disponible ]\n", memInfo->usedMemory);
+    if (percentage > 100) {
+        percentage = 100;
     }
 
+    int bars = percentage ; 
+
+    putchar('[');
+    for (int i = 0; i < bars; i++)
+    {
+        putchar('=');
+    }
+    for (int i = bars; i < 100; i++) 
+    {
+        putchar(' ');
+    }
+    putchar(']');
+    printf(" %d", percentage); 
+    putchar('%');
     putchar('\n');
 }
 
@@ -638,7 +631,12 @@ static void kill(int argc, char *argv[])
         printErr("Uso: kill <pid>\n");
         return;
     }
-    int result = killProcess(atoi(argv[1]));
+    int pid = atoi(argv[1]);
+    if (pid == 0){
+        printErr("Error: No se puede matar la shell.\n");
+        return;
+    }
+    int result = killProcess(pid);
     switch (result)
     {
     case 0:

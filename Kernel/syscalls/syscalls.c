@@ -11,7 +11,7 @@
 #include <pipeManager.h>
 #include <semaphoresManager.h>
 #include <scheduler.h>
-#include "./include/time.h"
+#include "../include/time.h"
 
 /* File Descriptors*/
 #define STDIN 0
@@ -73,6 +73,9 @@ uint64_t syscallDispatcher(uint64_t nr, uint64_t arg0, uint64_t arg1, uint64_t a
         (Syscall)waitForChildren,
         (Syscall)processInfo,
         (Syscall)wait_time,
+        (Syscall)getMemoryType,
+        (Syscall)getUsedMemory,
+        (Syscall)getFreeMemory,
     };
 	return syscalls[nr](arg0, arg1, arg2, arg3, arg4, arg5);
 }

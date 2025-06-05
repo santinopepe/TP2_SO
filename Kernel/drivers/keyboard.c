@@ -73,8 +73,13 @@ void keyboardHandler(){
         else if(_ctrl){
             if(key==C_HEX){ //ctrl+C
                 _bufferStart = _bufferSize = 0;
-                killForegroundProcess();
-                printf("ctrl+c clicked\n");
+                int ret =  killForegroundProcess();
+                if(ret == -1){
+                    printf("No se pudo matar a la shell\n");
+                }else if(ret == 0){
+                    printf("^C\n");
+                }
+                
             }
             else if(key==R_HEX){ //ctrl+R
                 saveRegisters();

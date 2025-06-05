@@ -267,4 +267,10 @@ uint16_t waitForChildren(uint16_t pid);
 
 void wait_time(uint32_t delta);
 
+char * getMemoryType();
+
+int getUsedMemory();
+
+int getFreeMemory();
+
 #endif

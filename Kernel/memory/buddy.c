@@ -1,386 +1,211 @@
 #include <MemoryManager.h>
 #include <memoryInfo.h>
-#include <stdint.h>
-#include <stddef.h>
-#include <lib.h>
+#include <video.h>
 #include <string.h>
 
-#define FREE 0
-#define ALLOCATED 1
-#define MIN_ORDER 4
-#define MAX_ORDERS 64
+#define SPLIT 1
+#define USED 2
 
-static void *firstAddress;
+#define POW_TWO(x) ((uint64_t) 1 << (x))
+#define MIN_EXPONENT 6
+#define MIN_ALLOC POW_TWO(MIN_EXPONENT)
+#define MAX_EXPONENT 28
+#define MAX_ALLOC POW_TWO(MAX_EXPONENT)
+#define NODES (POW_TWO(MAX_EXPONENT - MIN_EXPONENT + 1) - 1)
 
-typedef struct MemoryBlock
-{
-    uint8_t state;
-    struct MemoryBlock *next;
-    struct MemoryBlock *prev;
-    uint8_t order;
-} MemoryBlock;
+typedef struct {
+	uint8_t use;
+} Node;
 
-typedef struct MemoryManagerCDT
-{
-    MemoryInfoADT memoryInfo;
-    MemoryBlock *memoryBlockMap[MAX_ORDERS];
-    uint8_t maxExp;
+typedef struct MemoryManagerCDT {
+	uint8_t *firstAddress;
+	Node *tree;
+	uint64_t totalMemory;
+	uint64_t usedMemory;
+	char memoryType[32]; 
 } MemoryManagerCDT;
 
-static uint8_t log2_floor(uint64_t n);
+static MemoryManagerADT memoryManager = NULL;
 
-static uint8_t get_required_order(size_t size, uint8_t max_order);
+static MemoryManagerADT getMemoryManager();
+static uint64_t getNode(uint8_t exponent);
+static uint8_t getExponent(uint64_t request);
+static int64_t lookFreeNode(uint8_t exponent);
+static uint8_t *adress(uint64_t node, uint8_t exponent);
+static int64_t searchNode(uint8_t *ptr, uint8_t *exponent);
+static uint8_t getExponentAddress(void *ptr);
+static void treeUpdate(uint64_t node);
+static void setSplit(uint64_t node);
+static void setChildren(uint64_t node);
+static void releaseNode(uint64_t node);
 
-static MemoryBlock *removeMemoryBlock(MemoryBlock **memoryBlockMap, MemoryBlock *block);
-
-static MemoryBlock *createMemoryBlock(void *memoryToAllocate, uint8_t order);
-
-static MemoryManagerADT getMemoryManagerInternal();
-
-static int is_block_in_heap(uintptr_t block_addr, uintptr_t heap_start, uint64_t heap_size);
-
-static MemoryBlock *merge_blocks(MemoryManagerADT memoryManager, MemoryBlock *block);
-
-static MemoryBlock *split_block(MemoryManagerADT memoryManager, MemoryBlock *block_to_split);
-
-static uint8_t log2_floor(uint64_t n)
-{
-    if (n == 0)
-    {
-        return 0;
-    }
-
-    uint8_t log_val = 0;
-    while ((1ULL << (log_val + 1)) <= n)
-    {
-        log_val++;
-    }
-    return log_val;
+static MemoryManagerADT getMemoryManager() {
+	return memoryManager;
 }
 
-static uint8_t get_required_order(size_t size, uint8_t max_order)
-{
-    size_t required_size = size + sizeof(MemoryBlock);
+void createMemoryManager(void *start, uint64_t size) {
+	memoryManager = start;
 
-    uint8_t order = MIN_ORDER;
+	if (size < MIN_ALLOC) {
+		return;
+	}
 
-    size_t block_size = 1ULL << MIN_ORDER; // 2^MIN_ORDER
+	memoryManager->firstAddress = start + sizeof(MemoryManagerCDT);
+	memoryManager->tree = (Node *) (memoryManager->firstAddress + HEAP_SIZE);
 
-    while (block_size < required_size && order < max_order)
-    {
-        order++;
-        block_size <<= 1; 
-    }
-    if (block_size < required_size)
-    {
-        return -1;
-    }
+	memoryManager->totalMemory = HEAP_SIZE;
+	memoryManager->usedMemory = 0;
 
-    return order;
+	strcpy(memoryManager->memoryType, "Buddy");
 }
 
-static MemoryBlock *removeMemoryBlock(MemoryBlock **memoryBlockMap, MemoryBlock *block)
-{
-    if (block == NULL)
-    {
-        return NULL;
-    }
+void *malloc(uint64_t size) {
+	MemoryManagerADT memoryManager = getMemoryManager();
+	if (size > memoryManager->totalMemory || size == 0) {
+		return NULL;
+	}
 
-    if (block->order > MAX_ORDERS)
-    {
-        return NULL;
-    }
+	uint8_t exponent = getExponent(size);
+	if (exponent > MAX_EXPONENT) {
+		return NULL;
+	}
 
-    if (block->prev != NULL)
-    {
-        block->prev->next = block->next;
-    }
-    else
-    {
-        memoryBlockMap[block->order] = block->next;
-    }
+	int64_t node = lookFreeNode(exponent);
+	if (node == -1) {
+		return NULL;
+	}
 
-    if (block->next != NULL)
-    {
-        block->next->prev = block->prev;
-    }
+	treeUpdate(node);
+	memoryManager->tree[node].use = USED;
 
-    block->prev = NULL;
-    block->next = NULL;
+	memoryManager->usedMemory += POW_TWO(exponent);
 
-    return block;
+	return adress(node, exponent);
 }
 
-static MemoryBlock *createMemoryBlock(void *memoryToAllocate, uint8_t order)
-{
-    MemoryBlock *block = (MemoryBlock *)memoryToAllocate;
-    block->state = FREE;
-    block->order = order;
-    block->prev = NULL;
-    block->next = NULL;
+void free(void *ptr) {
+	MemoryManagerADT memoryManager = getMemoryManager();
+	if (ptr == NULL) {
+		return;
+	}
+	uint8_t exponent = getExponentAddress(ptr);
+	uint64_t node = searchNode(ptr, &exponent);
 
-    return block;
-}
+	releaseNode(node);
+	memoryManager->usedMemory -= POW_TWO(exponent);
 
-static MemoryManagerADT getMemoryManagerInternal()
-{
-    return (MemoryManagerADT)firstAddress;
-}
-
-static int is_block_in_heap(uintptr_t block_addr, uintptr_t heap_start, uint64_t heap_size)
-{
-    return block_addr >= heap_start && block_addr < (heap_start + heap_size);
-}
-
-static MemoryBlock *merge_blocks(MemoryManagerADT memoryManager, MemoryBlock *block)
-{
-    if (block == NULL || block->state == ALLOCATED || block->order >= memoryManager->maxExp)
-    {
-        return NULL;
-    }
-
-    uintptr_t block_addr = (uintptr_t)block;
-    uintptr_t buddy_addr = block_addr ^ (1ULL << block->order);
-    uintptr_t heap_start = (uintptr_t)memoryManager->memoryBlockMap[memoryManager->maxExp];
-    uint64_t heap_size = 1ULL << memoryManager->maxExp;
-    if (!is_block_in_heap(buddy_addr, heap_start, heap_size))
-    {
-        return NULL;
-    }
-    MemoryBlock *buddyBlock = (MemoryBlock *)buddy_addr;
-
-    
-    if (buddyBlock->state == FREE && buddyBlock->order == block->order)
-    {
-        // Determina cuál bloque va primero para el merge
-        MemoryBlock *first_block = (block_addr < buddy_addr) ? block : buddyBlock;
-        MemoryBlock *second_block = (block_addr < buddy_addr) ? buddyBlock : block;
-
-        removeMemoryBlock(memoryManager->memoryBlockMap, first_block);
-        removeMemoryBlock(memoryManager->memoryBlockMap, second_block);
-
-        MemoryBlock *merged_block = first_block;
-        merged_block->order++;
-        merged_block->state = FREE;
-        merged_block->prev = NULL;
-        merged_block->next = NULL;
-
-        return merged_block;
-    }
-
-    return NULL;
-}
-
-static MemoryBlock *split_block(MemoryManagerADT memoryManager, MemoryBlock *block_to_split)
-{
-    if (block_to_split == NULL || block_to_split->state == ALLOCATED || block_to_split->order <= MIN_ORDER)
-    {
-        return block_to_split;
-    }
-
-    uint8_t new_order = block_to_split->order - 1;
-    uintptr_t block_addr = (uintptr_t)block_to_split;
-    uintptr_t buddy_addr = block_addr ^ (1ULL >> new_order);
-    uint64_t heap_size = 1ULL << memoryManager->maxExp;
-    if (!is_block_in_heap(buddy_addr, (uintptr_t)firstAddress, heap_size))
-    {   
-        return block_to_split;
-    }
-    MemoryBlock *buddyBlock = (MemoryBlock *)buddy_addr;
-
-    block_to_split = removeMemoryBlock(memoryManager->memoryBlockMap, block_to_split);
-
-    block_to_split->state = FREE;
-    block_to_split->order = new_order; 
-    block_to_split->prev = NULL;
-    block_to_split->next = memoryManager->memoryBlockMap[new_order];
-    if (memoryManager->memoryBlockMap[new_order] != NULL)
-    {
-        memoryManager->memoryBlockMap[new_order]->prev = block_to_split;
-    }
-    memoryManager->memoryBlockMap[new_order] = block_to_split;
-
-    createMemoryBlock(buddyBlock, new_order);
-    buddyBlock->prev = NULL;
-    buddyBlock->next = memoryManager->memoryBlockMap[new_order];
-    if (memoryManager->memoryBlockMap[new_order] != NULL)
-    {
-        memoryManager->memoryBlockMap[new_order]->prev = buddyBlock;
-    }
-    memoryManager->memoryBlockMap[new_order] = buddyBlock;
-
-    return block_to_split;
-}
-
-void createMemoryManager(void *startMem, uint64_t totalSize)
-{
-    if (totalSize < sizeof(MemoryManagerCDT) + sizeof(MemoryInfoCDT) + (1ULL << MIN_ORDER))
-    {
-        return;
-    }
-
-    MemoryManagerADT memoryManager = (MemoryManagerADT)startMem;
-    firstAddress = memoryManager;
-
-    memoryManager->memoryInfo = (MemoryInfoADT)((uintptr_t)memoryManager + sizeof(MemoryManagerCDT));
-    initMemoryInfo(memoryManager->memoryInfo);
-
-    uintptr_t blocks_start_addr = (uintptr_t)memoryManager->memoryInfo + sizeof(MemoryInfoCDT);
-    uintptr_t heap_end = (uintptr_t)startMem + totalSize;
-    uint64_t available_size = heap_end - blocks_start_addr;
-    if (available_size < (1ULL << MIN_ORDER)) {
-        return NULL; 
-    }
-    
-    uint8_t maxExp = log2_floor(available_size);
-    if (maxExp < MIN_ORDER) {
-        maxExp = MIN_ORDER;
-    }
-    
-
-    uintptr_t aligned_heap_size = 1ULL << maxExp;
-    uintptr_t aligned_start_addr = blocks_start_addr;
-
-    if (aligned_start_addr % aligned_heap_size != 0) {
-        aligned_start_addr += aligned_heap_size - (aligned_start_addr % aligned_heap_size);
-        
-        if (aligned_start_addr + aligned_heap_size > heap_end) {
-            maxExp--;
-            if (maxExp < MIN_ORDER) return NULL;
-            aligned_heap_size = 1ULL << maxExp;
-            aligned_start_addr = blocks_start_addr;
-            if (aligned_start_addr % aligned_heap_size != 0)
-                aligned_start_addr += aligned_heap_size - (aligned_start_addr % aligned_heap_size);
-            if (aligned_start_addr + aligned_heap_size > heap_end) return NULL;
-        }
-    }
-    blocks_start_addr = aligned_start_addr;
-
-
-    for (int i = 0; i < MAX_ORDERS; i++)
-    {
-        memoryManager->memoryBlockMap[i] = NULL;
-    }
-
-    MemoryBlock *firstMemoryBlock = (MemoryBlock *)blocks_start_addr;
-    createMemoryBlock(firstMemoryBlock, maxExp);
-    memoryManager->memoryBlockMap[maxExp] = firstMemoryBlock;
-    memoryManager->maxExp = maxExp;
-
-    strcpy(memoryManager->memoryInfo->memoryType, "buddy");
-    memoryManager->memoryInfo->totalMemory = aligned_heap_size; 
-    memoryManager->memoryInfo->freeMemory = aligned_heap_size;
 
 }
 
-void *malloc(const size_t memoryToAllocate)
-{
-    if (memoryToAllocate == 0)
-    {
-        return NULL;
-    }
 
-    MemoryManagerADT memoryManager = getMemoryManagerInternal();
-
-    if (memoryManager == NULL)
-    {
-        return NULL;
-    }
-
-    uint8_t required_order = get_required_order(memoryToAllocate, memoryManager->maxExp);
-
-    if (required_order == -1 || required_order > memoryManager->maxExp)
-    {
-        return NULL;
-    }
-
-
-    uint8_t current_order = required_order;
-    MemoryBlock *block_to_allocate = NULL;
-
-    // Busca un bloque libre del orden requerido o superior
-    while (current_order <= memoryManager->maxExp)
-    {        
-
-        if (memoryManager->memoryBlockMap[current_order] != NULL)
-        {
-            block_to_allocate = removeMemoryBlock(memoryManager->memoryBlockMap, memoryManager->memoryBlockMap[current_order]);
-
-            break;
-        }
-        current_order++;
-    }
-
-    if (block_to_allocate == NULL)
-    {
-        return NULL;
-    }
-
-    // Divide el bloque si es necesario
-    while (block_to_allocate->order > required_order)
-    {
-        block_to_allocate = split_block(memoryManager, block_to_allocate);
-        
-        uintptr_t block_addr = (uintptr_t)block_to_allocate;
-        uintptr_t buddy_addr = block_addr ^ (1ULL << (block_to_allocate->order -1));
-        block_to_allocate = (MemoryBlock*) buddy_addr;
-    }
-
-    block_to_allocate->state = ALLOCATED;
-    memoryManager->memoryInfo->freeMemory -= (1ULL << block_to_allocate->order);
-
-    return (void *)((uintptr_t)block_to_allocate + sizeof(MemoryBlock));
+static inline uint64_t getNode(uint8_t exponent) {
+	return POW_TWO(MAX_EXPONENT - exponent) - 1;
 }
 
-void free(void *memoryToFree)
-{
-    if (memoryToFree == NULL)
-    {
-        return;
-    }
+static uint8_t *adress(uint64_t node, uint8_t exponent) {
+	MemoryManagerADT memoryManager = getMemoryManager();
+	return memoryManager->firstAddress + ((node - getNode(exponent)) << exponent);
+}
 
-    MemoryManagerADT memoryManager = getMemoryManagerInternal();
-    if (memoryManager == NULL)
-    {
-        return;
-    }
+static int64_t searchNode(uint8_t *ptr, uint8_t *exponent) {
+	MemoryManagerADT memoryManager = getMemoryManager();
+	int64_t node = 0;
+	uint8_t auxExponent = *exponent;
 
-    MemoryBlock *block_to_free = (MemoryBlock *)((uintptr_t)memoryToFree - sizeof(MemoryBlock));
+	while (auxExponent > 0 && memoryManager->tree[node].use != USED) {
+		node = ((ptr - memoryManager->firstAddress) >> auxExponent) + getNode(auxExponent);
+		auxExponent--;
+	}
+	*exponent = auxExponent;
+	return node;
+}
 
-    if (block_to_free->state == FREE)
-    {
-        return; 
-    }
+static uint8_t getExponentAddress(void *ptr) {
+	MemoryManagerADT memoryManager = getMemoryManager();
+	uint64_t addr = (uint8_t *) ptr - memoryManager->firstAddress;
+	uint8_t exponent = MAX_EXPONENT;
+	uint64_t size = MAX_ALLOC;
+	while (addr % size != 0) {
+		exponent--;
+		size >>= 1;
+	}
+	return exponent;
+}
 
-    block_to_free->state = FREE;
-    memoryManager->memoryInfo->freeMemory += (1ULL << block_to_free->order);
+static uint8_t getExponent(uint64_t request) {
+	uint8_t exponent = MIN_EXPONENT;
+	uint64_t size = MIN_ALLOC;
+	while (size < request) {
+		exponent++;
+		size <<= 1;
+	}
+	return exponent;
+}
 
-    MemoryBlock *current_block = block_to_free;
-    while (current_block->order < memoryManager->maxExp)
-    {
-        MemoryBlock *merged_block = merge_blocks(memoryManager, current_block);
+static int64_t lookFreeNode(uint8_t exponent) {
+	MemoryManagerADT memoryManager = getMemoryManager();
+	uint64_t node = getNode(exponent);
+	uint64_t lastnode = getNode(exponent - 1);
+	while (node < lastnode && (memoryManager->tree[node].use == USED || memoryManager->tree[node].use == SPLIT)) {
+		node++;
+	}
+	return (node == lastnode) ? -1 : node;
+}
 
-        if (merged_block != NULL)
-        {
-            current_block = merged_block;
-        }
-        else
-        {
+static void treeUpdate(uint64_t node) {
+	setSplit(node);
+	setChildren(node);
+}
+
+static void setSplit(uint64_t node) {
+	MemoryManagerADT memoryManager = getMemoryManager();
+	while (node != 0) {
+		node = ((node - 1) >> 1);
+		memoryManager->tree[node].use = SPLIT;
+	}
+}
+
+static void setChildren(uint64_t node) {
+	MemoryManagerADT memoryManager = getMemoryManager();
+	if (node >= NODES)
+		return;
+	memoryManager->tree[node].use = USED;
+	setChildren((node << 1) + 2);
+	setChildren((node << 1) + 1);
+}
+
+static void releaseNode(uint64_t node) {
+    MemoryManagerADT memoryManager = getMemoryManager();
+    memoryManager->tree[node].use = 0; 
+
+    while (node != 0) {
+        uint64_t parent = (node - 1) >> 1;
+        uint64_t left = (parent << 1) + 1;
+        uint64_t right = (parent << 1) + 2;
+
+       
+        if (memoryManager->tree[left].use == 0 && memoryManager->tree[right].use == 0) {
+            memoryManager->tree[parent].use = 0;
+            node = parent;
+        } else {
             break;
         }
     }
-
-    
-    current_block->next = memoryManager->memoryBlockMap[current_block->order];
-    if (memoryManager->memoryBlockMap[current_block->order] != NULL)
-    {
-        memoryManager->memoryBlockMap[current_block->order]->prev = current_block;
-    }
-    memoryManager->memoryBlockMap[current_block->order] = current_block;
-    current_block->prev = NULL;
 }
 
-MemoryInfoADT getMemoryInfo(){
-    MemoryManagerADT MemoryManager = getMemoryManagerInternal();
-    return MemoryManager->memoryInfo;
+
+char * getMemoryType(){
+	MemoryManagerADT memoryManager = getMemoryManager();
+	return memoryManager->memoryType;
+}
+
+int getUsedMemory(){
+	MemoryManagerADT memoryManager = getMemoryManager();
+	return memoryManager->totalMemory ;	
+}
+
+
+int getFreeMemory(){
+	MemoryManagerADT memoryManager = getMemoryManager();
+	return memoryManager->usedMemory;
 }

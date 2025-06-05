@@ -48,4 +48,6 @@ void test_prio() {
 
   for (i = 0; i < TOTAL_PROCESSES; i++)
     killProcess(pids[i]);
+
+  printf("Test de prioridades finalizado.\n");
 }

@@ -36,6 +36,10 @@ GLOBAL waitForChildren
 GLOBAL processInfo
 GLOBAL waitForChildren
 GLOBAL wait_time
+GLOBAL getMemoryType
+GLOBAL getUsedMemory
+GLOBAL getFreeMemory
+
 
 read:
     mov rax, 0
@@ -215,5 +219,20 @@ processInfo:
 
 wait_time:
     mov rax, 35
+    int 80h
+    ret
+
+getMemoryType:
+    mov rax, 36
+    int 80h
+    ret
+
+getUsedMemory:
+    mov rax, 37
+    int 80h
+    ret
+
+getFreeMemory:
+    mov rax, 38
     int 80h
     ret

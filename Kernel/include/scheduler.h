@@ -49,7 +49,7 @@ uint16_t getPid();
 
 void *schedule(void * prevStackPointer);
 
-void killForegroundProcess();
+int killForegroundProcess();
 
 void processInfo(ProcessData * process); 
 

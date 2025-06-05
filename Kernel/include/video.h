@@ -92,4 +92,7 @@ void setFontColor(Color color);
  */
 Color getFontColor();
 
+
+void printHex(uint64_t n); 
+
 #endif

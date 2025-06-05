@@ -67,7 +67,7 @@ int main()
 	static char arg0[] = "shell";
 	static char *argv[] = {arg0, NULL};
 	
-	createProcess((EntryPoint)sampleCodeModuleAddress, argv, 1, 0, fileDescriptors);
+	createProcess((EntryPoint)sampleCodeModuleAddress, argv, 1, 2, fileDescriptors);
 
 
 

@@ -58,12 +58,16 @@ SchedulerADT createScheduler(){
     return scheduler;
 }
 
-void killForegroundProcess(){
+int killForegroundProcess(){
     SchedulerADT scheduler = getSchedulerADT();
     if(scheduler == NULL){
-        return; 
+        return -2; 
+    }
+    if (scheduler->currentPID == 0 ) {
+        return -1; 
     }
     scheduler->killFgProcess = 1;
+    return 0; 
 }   
 
 int killProcess(uint16_t pid) {

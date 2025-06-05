@@ -19,6 +19,10 @@ void * malloc(const size_t memoryToAllocate);
 
 void free(void * memoryToFree); 
 
-MemoryInfoADT getMemoryInfo(); 
+char * getMemoryType();
+
+int getUsedMemory();
+
+int getFreeMemory();
 
 #endif // MEMORY_MANAGER_H

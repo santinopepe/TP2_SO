@@ -254,3 +254,23 @@ void printNChars(char c, int n) {
 uint32_t getScreenResolution(){
     return _screenData->width | _screenData->height << 16;
 }
+
+void printHex(uint64_t n) {
+    char buffer[17];
+    int i = 16;
+    buffer[i--] = '\0';
+    if (n == 0) {
+        printChar('0');
+        return;
+    }
+    while (n > 0 && i >= 0) {
+        int digit = n % 16;
+        buffer[i--] = (digit < 10) ? ('0' + digit) : ('A' + digit - 10);
+        n /= 16;
+    }
+    printChar('0');
+    printChar('x');
+    for (i = i + 1; buffer[i] != '\0'; i++) {
+        printChar(buffer[i]);
+    }
+}
