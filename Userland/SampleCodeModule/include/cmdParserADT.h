@@ -89,6 +89,6 @@ void setCommandStdout(CommandADT cmd, int index, uint8_t fd);
  * @param index: Indice del comando
  * @return int: 1 si se ejecuta en segundo plano, 0 si no
 */
-int isCommandBackground(CommandADT cmd, int index);
+int getIsBackground(CommandADT cmd, int index);
 
 #endif // CMD_PARSER_ADT_H

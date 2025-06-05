@@ -197,7 +197,7 @@ uint8_t readPipe(uint8_t fd, char *buffer, uint8_t size);
  * @param fileDescriptors: File descriptors del proceso
  * @return uint16_t: PID del nuevo proceso
 */
-uint16_t createProcess(uint64_t rip, char **argv, int argc, uint8_t priority, uint16_t fileDescriptors[]);
+uint16_t createProcess(EntryPoint rip, char **argv, int argc, uint8_t priority, uint16_t fileDescriptors[]);
 
 /**
  * @brief Mata un proceso

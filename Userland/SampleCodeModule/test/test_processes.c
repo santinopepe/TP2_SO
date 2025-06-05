@@ -43,7 +43,7 @@ int64_t test_processes(uint64_t argc, char *argv[]) {
     uint16_t fileDescriptors[] = {0, 1, 2};
     for (rq = 0; rq < max_processes; rq++) {
       printf("  Creando proceso %d/%d...\n", rq + 1, (int)max_processes);
-      p_rqs[rq].pid = createProcess((uint64_t) endless_loop, argvAux, 1, 0, fileDescriptors); // Asumo que endless_loop es el nombre y NULL el final de argv
+      p_rqs[rq].pid = createProcess((EntryPoint) endless_loop, argvAux, 1, 0, fileDescriptors); // Asumo que endless_loop es el nombre y NULL el final de argv
 
       if (p_rqs[rq].pid == -1) {
         printf("test_processes: ERROR creando proceso en el intento %d.\n", rq + 1);

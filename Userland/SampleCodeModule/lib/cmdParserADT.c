@@ -176,12 +176,7 @@ char ** getCommandArgv(CommandADT cmd, int index) {
     }
     return cmd->commands[index].argv;
 }
-int isCommandBackground(CommandADT cmd, int index) {
-    if (cmd == NULL || index < 0 || index >= cmd->qtyPrograms) {
-        return -1;
-    }
-    return cmd->commands[index].background;
-}
+
 int getCommandQty(CommandADT cmd) {
     if (cmd == NULL) {
         return -1;

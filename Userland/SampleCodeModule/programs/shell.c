@@ -72,10 +72,8 @@ static void unblockProcessWrapper(int argc, char *argv[]);
 
 static int readLineWithCursor(char *buffer, int max_len);
 static void executePipedCommands(CommandADT command);
-static void test_processesWrapper(int argc, char *argv[]);
-static void test_syncWrapper(int argc, char *argv[]);
-static void test_prioWrapper(int argc, char *argv[]);
 static void mem(int argc, char *argv[]);
+static int isBuiltinCommand(const char *cmdName);
 
 static int wc(int argc, char *argv[]);
 static int cat(int argc, char *argv[]);
@@ -197,14 +195,6 @@ static int getCommandIndex(char *command)
     return -1;
 }
 
-static void pipeCommands(int argc, char *argv[])
-{
-    if (argc != 2)
-    {
-        printErr(WRONG_PARAMS);
-        return;
-    }
-}
 
 static void help(int argc, char *argv[])
 {
@@ -480,12 +470,12 @@ static void executePipedCommands(CommandADT command)
         else{
             if(getIsBackground(command, i)){
                 uint16_t fileDescriptors[] = {-1, STDIN, STDERR};
-                createProcess((uint64_t)commands[cmd_index_in_shell].f, argv, argc, 0, fileDescriptors);
+                createProcess((EntryPoint)commands[cmd_index_in_shell].f, argv, argc, 0, fileDescriptors);
                 continue;
             }
             else{
                 uint16_t fileDescriptors[] = {STDIN, STDOUT, STDERR};
-                uint16_t pid = createProcess((uint64_t)commands[cmd_index_in_shell].f, argv, argc, 0, fileDescriptors);
+                uint16_t pid = createProcess((EntryPoint)commands[cmd_index_in_shell].f, argv, argc, 0, fileDescriptors);
                 waitForChildren(pid);
             }
         }
@@ -501,7 +491,7 @@ static void executePipedCommands(CommandADT command)
             }
         }
 
-        if (i == qtyPrograms - 1 && isCommandBackground(command, i))
+        if (i == qtyPrograms - 1 && getIsBackground(command, i))
         {
             printf("Comando '%s' (o pipeline) en segundo plano (requiere funcionalidad de SO para procesos).\n", cmdName);
         }
@@ -525,9 +515,6 @@ static void mem(int argc, char *argv[])
         printErr("Uso: mem\n");
         return;
     }
-
-  
-
 
     uint64_t usedMemory = getUsedMemory();
     uint64_t freeMemory = getFreeMemory();
@@ -599,23 +586,13 @@ static void ps(int argc, char *argv[])
     ProcessData processes[MAX_PROCESOS]; 
     char * foreground[2] = {"FOREGROUND", "BACKGROUND"};
 
-    if (processes == NULL)
-    {
-        printErr("Error al asignar memoria para los procesos.\n");
-        return;
-    }
     for(int i = 0; i < MAX_PROCESOS; i++)
     {
         processes[i].status = DEAD; 
     }
     
     processInfo(processes); // Llamamos a la funcion que obtiene la informacion de los procesos
-    if (processes == NULL)
-    {
-        printErr("Error al obtener la informacion de los procesos.\n");
-        free(processes);
-        return;
-    }
+
 
     printf("PID Nombre Prioridad Estado         Plano          Stack\n");
     for (int i = 0; i < MAX_PROCESOS; i++)
@@ -693,7 +670,7 @@ static int wc(int argc, char *argv[]){
 }
 
 
-int isBuiltinCommand(const char *cmdName) {
+static int isBuiltinCommand(const char *cmdName) {
     // Recorre el array de built-in commands
     for (int i = 0; i < QTY_BUILTIN_COMMANDS; i++) {
         if (strcmp(builtInCommands[i].name, cmdName) == 0)

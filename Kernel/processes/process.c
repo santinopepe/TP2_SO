@@ -3,8 +3,8 @@
 #include <MemoryManager.h>
 #include <lib.h>
 #include <scheduler.h>
+#include <semaphoresManager.h>
 
-static void * SchedulerPointer = NULL;  
 
 static int strlen(const char *str){ //esto Hay que cambiarlo
     int len = 0;
