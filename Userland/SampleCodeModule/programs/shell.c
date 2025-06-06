@@ -452,48 +452,27 @@ static void executePipedCommands(CommandADT command)
             return;
         }
 
-        // Primero, creamos el pipe para ambos procesos
-        // Usamos -1 como placeholder de PID, luego lo reasignamos correctamente
-        uint8_t pipefd = openPipe(-1, 0);
-
-        // Creamos el primer proceso (escritor)
+        
+        uint16_t pid1 = createProcess((EntryPoint)commands[cmd_index1].f, argv1, argc1, 0, fileDescriptors);
+        uint8_t pipefd = openPipe(pid1, 1); 
         uint16_t fileDescriptors1[3] = {shell_original_stdin, pipefd, STDERR};
-        // Cerramos y reabrimos el pipe con el PID correcto y modo WRITE
-        closePipe(pipefd);
-        pipefd = openPipe(0, 1); // 1 = WRITE, el PID real lo asigna el kernel al crear el proceso
+        changeFDS(pid1, fileDescriptors1); // Cambiamos los file descriptors del primer proceso
 
-        if (isBuiltinCommand(cmdName1)) {
-            current_stdin_fd = shell_original_stdin;
-            current_stdout_fd = pipefd;
-            commands[cmd_index1].f(argc1, argv1);
-        } else {
-            uint16_t pid1 = createProcess((EntryPoint)commands[cmd_index1].f, argv1, argc1, 0, fileDescriptors1);
-            // Ahora que tenemos el PID real, reabrimos el pipe correctamente
-            closePipe(pipefd);
-            pipefd = openPipe(pid1, 1); // 1 = WRITE
-            waitForChildren(pid1);
-        }
-
-        // Creamos el segundo proceso (lector)
+        // 3. Creamos el segundo proceso (lector)
+        
+        uint16_t pid2 = createProcess((EntryPoint)commands[cmd_index2].f, argv2, argc2, 0, fileDescriptors);
+        openPipe(pid2, 0); // 0 = READ
         uint16_t fileDescriptors2[3] = {pipefd, shell_original_stdout, STDERR};
-        closePipe(pipefd);
-        pipefd = openPipe( 0, 0); // 0 = READ
+        changeFDS(pid2, fileDescriptors2); // Cambiamos los file descriptors del segundo proceso
 
-        if (isBuiltinCommand(cmdName2)) {
-            current_stdin_fd = pipefd;
-            current_stdout_fd = shell_original_stdout;
-            commands[cmd_index2].f(argc2, argv2);
-        } else {
-            uint16_t pid2 = createProcess((EntryPoint)commands[cmd_index2].f, argv2, argc2, 0, fileDescriptors2);
-            closePipe(pipefd);
-            pipefd = openPipe(pid2, 0); // 0 = READ
-            waitForChildren(pid2);
-        }
+        waitForChildren(pid1);
+        waitForChildren(pid2);
 
         closePipe(pipefd);
+      
+       
     }
 
-    // Restaurar stdin y stdout originales
     current_stdin_fd = shell_original_stdin;
     current_stdout_fd = shell_original_stdout;
 }

@@ -52,4 +52,6 @@ int killForegroundProcess();
 
 void processInfo(ProcessData * process); 
 
+int changeFDS(uint16_t pid, uint16_t fileDescriptors[]); 
+
 #endif 

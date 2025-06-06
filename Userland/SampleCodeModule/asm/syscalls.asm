@@ -39,6 +39,7 @@ GLOBAL wait_time
 GLOBAL getMemoryType
 GLOBAL getUsedMemory
 GLOBAL getFreeMemory
+GLOBAL changeFDS
 
 
 read:
@@ -234,5 +235,10 @@ getUsedMemory:
 
 getFreeMemory:
     mov rax, 38
+    int 80h
+    ret
+
+changeFDS:
+    mov rax, 39
     int 80h
     ret

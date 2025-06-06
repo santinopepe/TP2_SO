@@ -458,3 +458,18 @@ void processInfo(ProcessData * process) {
     }
 
 }
+
+
+int changeFDS(uint16_t pid, uint16_t fileDescriptors[]){
+    SchedulerADT scheduler = getSchedulerADT();
+    
+    if (scheduler == NULL || pid >= MAX_PROCESOS || scheduler->process[pid].status == DEAD) {
+        return -1;
+    }
+
+    for (int i = 0; i < CANT_FILE_DESCRIPTORS; i++) {
+        scheduler->process[pid].fileDescriptors[i] = fileDescriptors[i];
+    }
+
+    return 0;
+}

@@ -273,4 +273,6 @@ int getUsedMemory();
 
 int getFreeMemory();
 
+void changeFDS(uint16_t pid, uint16_t fileDescriptors[]);
+
 #endif

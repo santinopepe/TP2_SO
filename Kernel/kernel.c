@@ -68,24 +68,6 @@ int main()
 	static char *argv[] = {arg0, NULL};
 	
 	createProcess((EntryPoint)sampleCodeModuleAddress, argv, 1, 2, fileDescriptors);
-
-
-
-
-#ifdef TEST_LIST
-	char *test_argv[] = { NULL }; 
-	uint64_t test_argc = 0;
-	printf("Starting List test...\n"); 
-	uint64_t test_result = test_list(test_argc, test_argv);
-	if(test_result != 0) {
-		printf("--- Test de la lista: FAILED ----\n"); 
-		while(1) _hlt(); 
-	} else {
-		printf("--- Test de la lista: PASSED ----\n"); 
-	}
-	printf("List test finished.\n"); 
-#endif
-
 	
 
     
