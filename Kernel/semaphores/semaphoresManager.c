@@ -108,11 +108,11 @@ int8_t sem_post(uint8_t sem){
     }
 
     acquire(&semaphoresManager->semaphores[sem].lock);
-    
+
     while(!isEmpty(semaphoresManager->semaphores[sem].waitingProcesses)){
-        int16_t * pid = (int16_t *) getFirst(semaphoresManager->semaphores[sem].waitingProcesses); //Aca podria hacer un get and remove
+        int16_t * pid = (int16_t *) getFirst(semaphoresManager->semaphores[sem].waitingProcesses); // get and remove
         Process * process = findProcess(*pid);
-        if (process == NULL || process->status != DEAD){
+        if (process == NULL || process->status == DEAD){
             free(pid);
             continue;
         }
@@ -124,10 +124,9 @@ int8_t sem_post(uint8_t sem){
     if(isEmpty(semaphoresManager->semaphores[sem].waitingProcesses)){
         semaphoresManager->semaphores[sem].value++;
     }
-    
+
     release(&semaphoresManager->semaphores[sem].lock);
     return 0;
-
 }
 
 int8_t create_sem(uint8_t sem, uint8_t value){

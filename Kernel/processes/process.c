@@ -63,23 +63,22 @@ void freeProcess(Process *process){
     free(process);
 }
 
-uint16_t waitForChildren(uint16_t pid) {
+uint16_t waitForChildren() {
     SchedulerADT scheduler = getSchedulerADT();
     if (scheduler == NULL) return -1;
 
-    
+    uint16_t myPID = getPid();
+    Process *me = &scheduler->process[myPID];
+    if (me == NULL || me->status == DEAD) return -1;
 
-    Process *parent = &scheduler->process[pid];
-    if (parent == NULL || parent->status == DEAD) return -1;
+    if (me->children == NULL || isEmpty(me->children)) return 0;
 
-    if (parent->children == NULL || isEmpty(parent->children)) return 0;
-
-    if (parent->children_sem == -1) {
-        parent->children_sem = parent->PID + 2;
-        create_sem(parent->children_sem, 0);
-        sem_open(parent->children_sem);
+    if (me->children_sem == -1) {
+        me->children_sem = me->PID + 2;
+        sem_open(me->children_sem);
+        create_sem(me->children_sem, 0);
     }
-    sem_wait(parent->children_sem);
-
+    sem_wait(me->children_sem);
+    yield();
     return 0;
 }

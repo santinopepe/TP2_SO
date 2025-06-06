@@ -34,8 +34,8 @@ typedef enum
 #define MAX_CHARS 256
 
 // FD de la shell
-static int current_stdin_fd = 0;
-static int current_stdout_fd = 1;
+static int current_stdin_fd = STDIN;
+static int current_stdout_fd = STDOUT;
 
 
 #define WELCOME "Bienvenido a SIM SIM OS!\n"
@@ -128,7 +128,6 @@ static Command builtInCommands[] = {
     {"unblock", "Desbloquea un proceso. Uso: unblock <pid>", (CommandFunction)unblockProcessWrapper},
     {"kill", "Elimina un proceso. Uso: kill <pid>", (CommandFunction)kill},
     {"mem", "Muestra informacion de la memoria del sistema", (CommandFunction)mem},
-    {"cat", "Imprime el STDIN tal como lo recibe", (CommandFunction)cat},
     {"ps", "Muestra la informacion de los procesos vivos", (CommandFunction)ps},
 };
 
@@ -136,11 +135,12 @@ static Command processCommands[] = {
     {"test-processes", "Ejecuta un test de procesos. Uso: test-processes <cantidad>", (CommandFunction)test_processes},
     {"test-priority", "Ejecuta un test de prioridades. Uso: test-priority", (CommandFunction)test_prio},
     {"test-sync", "Ejectua un test de sincronizacion. Uso: test-sync <sem>", (CommandFunction)test_sync},
-    {"wc", "Cuenta la cantidad de lineas del input", (CommandFunction)wc},
-    {"filter", "Filtra las vocales del input", (CommandFunction)filter},
+    {"test-mm", "Ejecuta un test de memoria. Uso: test-mm <max_memory>", (CommandFunction)test_mm},
     {"phylo", "Ejecuta la simulacion del problema de los filosofos comensales", (CommandFunction)phylo},
     {"loop", "Imprime su ID con un saludo cada una determinada cantidad de segundos. Uso: loop <cantidad de segundos>", (CommandFunction)loop},
-    {"test-mm", "Ejecuta un test de memoria. Uso: test-mm <max_memory>", (CommandFunction)test_mm},
+    {"wc", "Cuenta la cantidad de lineas del input", (CommandFunction)wc},
+    {"filter", "Filtra las vocales del input", (CommandFunction)filter},
+    {"cat", "Imprime el STDIN tal como lo recibe", (CommandFunction)cat},
 
 };
 
@@ -433,10 +433,10 @@ static void executePipedCommands(CommandADT command)
         } else {
             uint16_t fileDescriptors[3] = {shell_original_stdin, shell_original_stdout, STDERR};
             uint16_t pid = createProcess((EntryPoint)commands[cmd_index_in_shell].f, argv, argc, 0, fileDescriptors);
-            waitForChildren(pid);
+            waitForChildren();
         }
     } else if (qtyPrograms == 2) {
-        // Un solo pipe permitido
+         // Un solo pipe permitido
         char *cmdName1 = getCommandName(command, 0);
         int argc1 = getCommandArgc(command, 0);
         char **argv1 = getCommandArgv(command, 0);
@@ -452,22 +452,23 @@ static void executePipedCommands(CommandADT command)
             return;
         }
 
-        
-        uint16_t pid1 = createProcess((EntryPoint)commands[cmd_index1].f, argv1, argc1, 0, fileDescriptors);
-        uint8_t pipefd = openPipe(pid1, 1); 
-        uint16_t fileDescriptors1[3] = {shell_original_stdin, pipefd, STDERR};
-        changeFDS(pid1, fileDescriptors1); // Cambiamos los file descriptors del primer proceso
+        // 1. Creamos el primer proceso (escritor)
+        uint16_t pid1 = createProcess((EntryPoint)commands[cmd_index1].f, argv1, argc1, 0, NULL);
+        // 2. Abrimos el pipe para el escritor
+        uint8_t pipefd = openPipe(pid1, 1); // 1 = WRITE
+        uint16_t fileDescriptors1[3] = {STDIN, pipefd, STDERR};
+        changeFDS(pid1, fileDescriptors1);
 
         // 3. Creamos el segundo proceso (lector)
-        
-        uint16_t pid2 = createProcess((EntryPoint)commands[cmd_index2].f, argv2, argc2, 0, fileDescriptors);
+        uint16_t pid2 = createProcess((EntryPoint)commands[cmd_index2].f, argv2, argc2, 0, NULL);
         openPipe(pid2, 0); // 0 = READ
-        uint16_t fileDescriptors2[3] = {pipefd, shell_original_stdout, STDERR};
-        changeFDS(pid2, fileDescriptors2); // Cambiamos los file descriptors del segundo proceso
+        uint16_t fileDescriptors2[3] = {pipefd, STDOUT, STDERR};
+        changeFDS(pid2, fileDescriptors2);
 
-        waitForChildren(pid1);
-        waitForChildren(pid2);
+        // 4. Esperamos a que ambos procesos terminen
+        waitForChildren();
 
+        // 5. Cerramos el pipe
         closePipe(pipefd);
       
        
@@ -601,22 +602,17 @@ static void kill(int argc, char *argv[])
     }
 }
 
-static void filter(int argc, char *argv[])
-{
-    if (argc != 1)
-    {
-        printErr("Uso: filter\n");
-        return;
-    }
-    char c; 
+static void filter(int argc, char *argv[]) {
+    int c;
+    int prevWasNewline = 0;
     while (1) {
         c = my_getchar();
-        int prevWasNewline = 1;
-        if (c == 0 && !ES_VOCAL(c)) 
+        if (c == 0)
             continue;
+        if (!ES_VOCAL(c))
             my_putchar(c);
-        if (c == '\n') { //Doble enter termina el cat 
-            if (prevWasNewline) 
+        if (c == '\n') {
+            if (prevWasNewline)
                 break;
             prevWasNewline = 1;
         } else {
@@ -624,19 +620,19 @@ static void filter(int argc, char *argv[])
         }
     }
     putchar('\n');
-    return; 
 }
 
 static int cat(int argc, char *argv[]) {
+    printf("Imprimiendo STDIN:\n");
     int c;
-    int prevWasNewline = 1;
+    int prevWasNewline = 0;
     while (1) {
         c = my_getchar();
         if (c == 0)
             continue;
-            my_putchar(c);
-        if (c == '\n') { //Doble enter termina el cat 
-            if (prevWasNewline) 
+        my_putchar(c);
+        if (c == '\n') {
+            if (prevWasNewline)
                 break;
             prevWasNewline = 1;
         } else {
@@ -649,8 +645,17 @@ static int cat(int argc, char *argv[]) {
 static int wc(int argc, char *argv[]){
     char c;
     int lineCounter=0;
-    while((int) (c = my_getchar()) != EOF){
-        lineCounter += (c == '\n');
+    int prevWasNewline = 0;
+    while(1){
+        c = my_getchar();
+        lineCounter += (c == '\n');  
+        if (c == '\n') {
+            if (prevWasNewline)
+                break;
+            prevWasNewline = 1;
+        } else {
+            prevWasNewline = 0;
+        }  
     }
     printf("La cantidad de lineas: %d\n", lineCounter);
     return 0;

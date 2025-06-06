@@ -33,7 +33,7 @@ typedef struct process{
 
 void freeProcess(Process *process);
 
-uint16_t waitForChildren(uint16_t pid); 
+uint16_t waitForChildren(); 
 
 uint64_t setUpStackFrame(uint64_t stackBase, uint64_t code, int argc, char *args[], EntryPoint originalEntryPoint);
 

@@ -138,9 +138,7 @@ int killProcess(uint16_t pid) {
     }
 
     scheduler->processCount--;
-    if(pid == scheduler->currentPID) {
-        yield(); // cede el CPU al siguiente proceso
-    }
+    yield();
     return 0;
 }
 
@@ -325,10 +323,9 @@ int blockProcess(uint16_t pid){ //bloquea el proceso, lo saca de la lista de lis
 
     if(scheduler->process[pid].status == RUNNING){ 
         scheduler->process[pid].status = BLOCKED; 
-        processSwitch();
         removeElement(scheduler->readyList, &scheduler->process[pid].PID);
         insertLast(scheduler->blockedList, &scheduler->process[pid].PID); //agrega el proceso a la lista de bloqueados
-
+        yield();
     } else if (scheduler->process[pid].status == READY){
         scheduler->process[pid].status = BLOCKED; 
         removeElement(scheduler->readyList, &scheduler->process[pid].PID);

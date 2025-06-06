@@ -5,7 +5,7 @@
 #include <syscalls.h>
 #include <test_util.h>
 
-#define SEM_ID 1
+#define SEM_ID 50
 #define TOTAL_PAIR_PROCESSES 2
 
 int64_t global; // shared memory
@@ -61,9 +61,8 @@ uint64_t test_sync(uint64_t argc, char *argv[]) { //{name,n, use_sem, 0}
     printf("test_sync: ERROR: Se esperaban 2 argumentos (n, use_sem), recibidos %d\n", argc - 1);
     return -1;
   }
-  char *argvDec[] = {argv[1], "-1", argv[2], NULL};
-  char *argvInc[] = {argv[1], "1", argv[2], NULL};
-
+  char *argvDec[] = {"my_processes_dec", argv[1], "-1", argv[2], NULL};
+  char *argvInc[] = {"my_processes_inc", argv[1], "1", argv[2], NULL};
   global = 0;
 
   uint64_t i;
@@ -83,11 +82,10 @@ uint64_t test_sync(uint64_t argc, char *argv[]) { //{name,n, use_sem, 0}
   printf("Esperando a que los procesos terminen...\n");
   for (i = 0; i < TOTAL_PAIR_PROCESSES; i++) {
     printf("  Esperando al par de procesos %d (PID Dec: %d, PID Inc: %d)...\n", i + 1, pids[i], pids[i + TOTAL_PAIR_PROCESSES]);
-    sem_wait(pids[i]);
     printf("    Proceso Dec (PID: %d) finalizado.\n", pids[i]);
-    sem_wait(pids[i + TOTAL_PAIR_PROCESSES]);
     printf("    Proceso Inc (PID: %d) finalizado.\n", pids[i + TOTAL_PAIR_PROCESSES]);
   }
+  waitForChildren(); // Espera a que todos los procesos terminen
 
   printf("Todos los procesos han terminado.\n");
   printf("Final value: %d\n", global);
