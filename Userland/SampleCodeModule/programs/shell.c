@@ -648,6 +648,8 @@ static int wc(int argc, char *argv[]){
     int prevWasNewline = 0;
     while(1){
         c = my_getchar();
+        if (c == 0)
+            continue; 
         lineCounter += (c == '\n');  
         if (c == '\n') {
             if (prevWasNewline)
