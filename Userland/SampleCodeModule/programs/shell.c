@@ -624,19 +624,25 @@ static void kill(int argc, char *argv[])
 
 static void filter(int argc, char *argv[])
 {
-    if (argc != 2)
+    if (argc != 1)
     {
-        printErr("Uso: filter <texto>\n");
+        printErr("Uso: filter\n");
         return;
     }
     char c; 
-    while((c = my_getchar()) != '\n' && c != EOF)
-    {
-        if (!ES_VOCAL(c) && c != '\n')
-        {
+    while (1) {
+        c = my_getchar();
+        int prevWasNewline = 1;
+        if (c == 0 && !ES_VOCAL(c)) 
+            continue;
             my_putchar(c);
+        if (c == '\n') { //Doble enter termina el cat 
+            if (prevWasNewline) 
+                break;
+            prevWasNewline = 1;
+        } else {
+            prevWasNewline = 0;
         }
-        
     }
     putchar('\n');
     return; 

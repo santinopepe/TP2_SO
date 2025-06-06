@@ -201,11 +201,11 @@ char * getMemoryType(){
 
 int getUsedMemory(){
 	MemoryManagerADT memoryManager = getMemoryManager();
-	return memoryManager->totalMemory ;	
+	return memoryManager->usedMemory; 
 }
 
 
 int getFreeMemory(){
 	MemoryManagerADT memoryManager = getMemoryManager();
-	return memoryManager->usedMemory;
+	return memoryManager->totalMemory - memoryManager->usedMemory;
 }
