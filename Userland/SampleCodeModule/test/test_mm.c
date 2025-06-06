@@ -53,7 +53,7 @@ uint64_t test_mm(uint64_t argc, char *argv[]) {
           printf("test_mm ERROR\n");
           return -1;
         }
-    printf("test_mm: Se solicitaron %d bloques, sumando %d bytes.\n", rq, total);
+      printf("test_mm: Se solicitaron %d bloques, sumando %d bytes.\n", rq, total);
 
     for (i = 0; i < rq; i++)
       if (mm_rqs[i].address)

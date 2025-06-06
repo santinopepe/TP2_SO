@@ -50,21 +50,18 @@ Pipe createPipe()
 
 uint8_t openPipe(uint16_t pid, uint8_t mode)
 {
-
     if (pipeManager->pipeCount >= MAX_PIPES){
         return -1;
     }
     uint8_t pipeIndex = 0;
-    uint8_t foundPipe = 0;
     for (; pipeIndex < MAX_PIPES; pipeIndex++){
         if (pipeManager->pipes[pipeIndex].fd == -1){
             pipeManager->pipes[pipeIndex] = createPipe();
-            
+            pipeManager->pipes[pipeIndex].fd = pipeIndex; 
+
             if (mode == READ && pipeManager->pipes[pipeIndex].inputPID == -1){
                 pipeManager->pipes[pipeIndex].inputPID = pid;
-                pipeManager->pipes[pipeIndex].outputPID = -1;
             } else if (mode == WRITE && pipeManager->pipes[pipeIndex].outputPID == -1){
-                pipeManager->pipes[pipeIndex].inputPID = -1;
                 pipeManager->pipes[pipeIndex].outputPID = pid;
             }
 
@@ -72,9 +69,7 @@ uint8_t openPipe(uint16_t pid, uint8_t mode)
             return pipeIndex;
         }
     }
-
     return -1;
-  
 }
 
 uint8_t closePipe(uint8_t fd)
@@ -95,43 +90,36 @@ uint8_t closePipe(uint8_t fd)
 
 uint8_t writePipe(uint8_t fd, char *buffer, uint8_t size)
 {
-
-    if (fd > MAX_PIPES || size > PIPE_SIZE || pipeManager->pipes[fd].writeLock || pipeManager->pipes[fd].size == PIPE_SIZE)
+    if (fd >= MAX_PIPES || size > PIPE_SIZE || pipeManager->pipes[fd].writeLock || pipeManager->pipes[fd].size == PIPE_SIZE)
     {
         return 0;
     }
 
-
+    uint8_t written = 0;
     for (int i = 0; i < size; i++)
     {
-
-        while (pipeManager->pipes[fd].writeIndex == pipeManager->pipes[fd].readIndex && pipeManager->pipes[fd].size != 0)
-        { // Si el buffer está lleno, espera a que haya espacio
-            pipeManager->pipes[fd].writeLock = 1;
-            blockProcess(pipeManager->pipes[fd].outputPID); // ACA PODEMOS HACER UN blockByPipe
-        }
+        if (pipeManager->pipes[fd].size == PIPE_SIZE)
+            break; // buffer lleno
 
         pipeManager->pipes[fd].buffer[pipeManager->pipes[fd].writeIndex] = buffer[i];
-        pipeManager->pipes[fd].writeIndex++;
-        pipeManager->pipes[fd].writeIndex = (pipeManager->pipes[fd].writeIndex + 1) % PIPE_SIZE; // Circular buffer
+        pipeManager->pipes[fd].writeIndex = (pipeManager->pipes[fd].writeIndex + 1) % PIPE_SIZE;
+        pipeManager->pipes[fd].size++;
+        written++;
 
         if (pipeManager->pipes[fd].readLock)
         {
             pipeManager->pipes[fd].readLock = 0;
-            unblockProcess(pipeManager->pipes[fd].inputPID); // Desbloquea el proceso que estaba esperando para leer
+            unblockProcess(pipeManager->pipes[fd].inputPID);
         }
     }
-
-    pipeManager->pipes[fd].size += size;
     pipeManager->pipes[fd].writeLock = 0;
-
-    return size;
+    return written;
 }
+
 
 uint8_t readPipe(uint8_t fd, char *buffer, uint8_t size)
 {
-
-    if (fd > MAX_PIPES || size > PIPE_SIZE || pipeManager->pipes[fd].readLock || pipeManager->pipes[fd].size == 0)
+    if (fd >= MAX_PIPES || size > PIPE_SIZE || pipeManager->pipes[fd].readLock || pipeManager->pipes[fd].size == 0)
     {
         return 0;
     }
@@ -140,26 +128,16 @@ uint8_t readPipe(uint8_t fd, char *buffer, uint8_t size)
 
     for (int i = 0; i < bytesToRead; i++)
     {
-
-        while (pipeManager->pipes[fd].size == 0)
-        { // Si el buffer está vacío, espera a que haya datos
-            pipeManager->pipes[fd].readLock = 1;
-            blockProcess(pipeManager->pipes[fd].inputPID); // ACA PODEMOS HACER UN blockByPipe
-        }
-
         buffer[i] = pipeManager->pipes[fd].buffer[pipeManager->pipes[fd].readIndex];
-        pipeManager->pipes[fd].readIndex++;
-        pipeManager->pipes[fd].readIndex = (pipeManager->pipes[fd].readIndex + 1) % PIPE_SIZE; // Circular buffer
+        pipeManager->pipes[fd].readIndex = (pipeManager->pipes[fd].readIndex + 1) % PIPE_SIZE;
+        pipeManager->pipes[fd].size--;
 
         if (pipeManager->pipes[fd].writeLock)
         {
             pipeManager->pipes[fd].writeLock = 0;
-            unblockProcess(pipeManager->pipes[fd].outputPID); // Desbloquea el proceso que estaba esperando para escribir
+            unblockProcess(pipeManager->pipes[fd].outputPID);
         }
     }
-
-    pipeManager->pipes[fd].size -= bytesToRead;
     pipeManager->pipes[fd].readLock = 0;
-
     return bytesToRead;
 }

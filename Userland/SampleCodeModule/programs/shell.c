@@ -145,6 +145,16 @@ static Command processCommands[] = {
 };
 
 
+
+static int my_getchar() {
+    return read(current_stdin_fd);
+}
+
+static void my_putchar(char c) {
+    write(current_stdout_fd, c);
+}
+
+
 void run_shell()
 {
     puts(WELCOME);
@@ -391,145 +401,99 @@ static int readLineWithCursor(char *buffer, int max_len)
     return bIdx;
 }
 
+
 static void executePipedCommands(CommandADT command)
 {
     uint8_t shell_original_stdin = current_stdin_fd;
     uint8_t shell_original_stdout = current_stdout_fd;
-
     int qtyPrograms = getCommandQty(command);
-    int error_occurred = 0;
 
-    for (int i = 0; i < qtyPrograms; i++)
-    {
-        if (error_occurred)
-        {
+    if (qtyPrograms > 2) {
+        printErr("Solo se permite un pipe (dos comandos).\n");
+        return;
+    }
 
-            for (int j = 0; j < i; j++)
-            {
-                uint8_t fd_to_close = getCommandStdout(command, j);
-                if (fd_to_close != shell_original_stdout && fd_to_close != 0xFF)
-                {
-                    closePipe(fd_to_close);
-                }
-            }
-            break;
-        }
-
-        char *cmdName = getCommandName(command, i);
-        int argc = getCommandArgc(command, i);
-        char **argv = getCommandArgv(command, i);
-
-        if (i == 0)
-        {
-            setCommandStdin(command, i, shell_original_stdin);
-        }
-        else
-        {
-            setCommandStdin(command, i, getCommandStdout(command, i - 1));
-        }
-
-        if (i < qtyPrograms - 1)
-        {
-            uint8_t pipe_fd = openPipe(0, 0);
-            if (pipe_fd == 0xFF)
-            {
-                printErr("Error: no se pudo abrir un pipe para el comando.\n");
-                error_occurred = 1;
-                continue;
-            }
-            setCommandStdout(command, i, pipe_fd);
-        }
-        else
-        {
-            setCommandStdout(command, i, shell_original_stdout);
-        }
-
-        current_stdin_fd = getCommandStdin(command, i);
-        current_stdout_fd = getCommandStdout(command, i);
-
+    if (qtyPrograms == 1) {
+        // Sin pipe, ejecuta normalmente
+        char *cmdName = getCommandName(command, 0);
+        int argc = getCommandArgc(command, 0);
+        char **argv = getCommandArgv(command, 0);
         int cmd_index_in_shell = getCommandIndex(cmdName);
-        if (cmd_index_in_shell == -1)
-        {
+
+        if (cmd_index_in_shell == -1) {
             printErr(INVALID_COMMAND);
-            error_occurred = 1;
-            if (i < qtyPrograms - 1)
-            {
-                uint8_t fd_to_close = getCommandStdout(command, i);
-                if (fd_to_close != shell_original_stdout && fd_to_close != 0xFF)
-                {
-                    closePipe(fd_to_close);
-                }
-            }
-            continue;
+            return;
         }
+
+        current_stdin_fd = shell_original_stdin;
+        current_stdout_fd = shell_original_stdout;
 
         if (isBuiltinCommand(cmdName)) {
-            // Ejecutar directamente en la shell
             commands[cmd_index_in_shell].f(argc, argv);
+        } else {
+            uint16_t fileDescriptors[3] = {shell_original_stdin, shell_original_stdout, STDERR};
+            uint16_t pid = createProcess((EntryPoint)commands[cmd_index_in_shell].f, argv, argc, 0, fileDescriptors);
+            waitForChildren(pid);
         }
-        else{
-            uint8_t pipe_fd = getCommandStdout(command, 0);
-            if(getIsBackground(command, i)){
-                if(i==0){
-                    uint16_t fileDescriptors[] = {
-                    -1,
-                    pipe_fd,
-                    STDERR
-                    };
-                }
-                else{
-                    uint16_t fileDescriptors[] = {
-                        pipe_fd,   
-                        STDOUT,
-                        STDERR
-                    };
-                }
-                createProcess((EntryPoint)commands[cmd_index_in_shell].f, argv, argc, 0, fileDescriptors);
-                continue;
-            }
-            else{
-                if(i==0){}
-                    uint16_t fileDescriptors[] = {
-                        STDIN,   // stdin: puede ser un pipe_fd o el stdin original
-                        pipe_fd,  // stdout: puede ser un pipe_fd o el stdout original
-                        STDERR
-                    };
-                }
-                else{
-                    uint16_t fileDescriptors[] = {
-                        pipe_fd,   // stdin: puede ser un pipe_fd o el stdin original
-                        STDOUT,  // stdout: puede ser un pipe_fd o el stdout original
-                        STDERR
-                    };
-                uint16_t pid = createProcess((EntryPoint)commands[cmd_index_in_shell].f, argv, argc, 0, fileDescriptors);
-                waitForChildren(pid);
-            }
+    } else if (qtyPrograms == 2) {
+        // Un solo pipe permitido
+        char *cmdName1 = getCommandName(command, 0);
+        int argc1 = getCommandArgc(command, 0);
+        char **argv1 = getCommandArgv(command, 0);
+        int cmd_index1 = getCommandIndex(cmdName1);
+
+        char *cmdName2 = getCommandName(command, 1);
+        int argc2 = getCommandArgc(command, 1);
+        char **argv2 = getCommandArgv(command, 1);
+        int cmd_index2 = getCommandIndex(cmdName2);
+
+        if (cmd_index1 == -1 || cmd_index2 == -1) {
+            printErr(INVALID_COMMAND);
+            return;
         }
 
-        //commands[cmd_index_in_shell].f(argc, argv);
+        // Primero, creamos el pipe para ambos procesos
+        // Usamos -1 como placeholder de PID, luego lo reasignamos correctamente
+        uint8_t pipefd = openPipe(-1, 0);
 
-        if (i < qtyPrograms - 1)
-        {
-            uint8_t fd_to_close = getCommandStdout(command, i);
-            if (fd_to_close != shell_original_stdout && fd_to_close != 0xFF)
-            {
-                closePipe(fd_to_close); // Cierra el extremo de escritura
-            }
+        // Creamos el primer proceso (escritor)
+        uint16_t fileDescriptors1[3] = {shell_original_stdin, pipefd, STDERR};
+        // Cerramos y reabrimos el pipe con el PID correcto y modo WRITE
+        closePipe(pipefd);
+        pipefd = openPipe(0, 1); // 1 = WRITE, el PID real lo asigna el kernel al crear el proceso
+
+        if (isBuiltinCommand(cmdName1)) {
+            current_stdin_fd = shell_original_stdin;
+            current_stdout_fd = pipefd;
+            commands[cmd_index1].f(argc1, argv1);
+        } else {
+            uint16_t pid1 = createProcess((EntryPoint)commands[cmd_index1].f, argv1, argc1, 0, fileDescriptors1);
+            // Ahora que tenemos el PID real, reabrimos el pipe correctamente
+            closePipe(pipefd);
+            pipefd = openPipe(pid1, 1); // 1 = WRITE
+            waitForChildren(pid1);
         }
 
-        if (i == qtyPrograms - 1 && getIsBackground(command, i))
-        {
-            printf("Comando '%s' (o pipeline) en segundo plano (requiere funcionalidad de SO para procesos).\n", cmdName);
+        // Creamos el segundo proceso (lector)
+        uint16_t fileDescriptors2[3] = {pipefd, shell_original_stdout, STDERR};
+        closePipe(pipefd);
+        pipefd = openPipe( 0, 0); // 0 = READ
+
+        if (isBuiltinCommand(cmdName2)) {
+            current_stdin_fd = pipefd;
+            current_stdout_fd = shell_original_stdout;
+            commands[cmd_index2].f(argc2, argv2);
+        } else {
+            uint16_t pid2 = createProcess((EntryPoint)commands[cmd_index2].f, argv2, argc2, 0, fileDescriptors2);
+            closePipe(pipefd);
+            pipefd = openPipe(pid2, 0); // 0 = READ
+            waitForChildren(pid2);
         }
+
+        closePipe(pipefd);
     }
 
-    if (qtyPrograms > 0 && getCommandStdin(command, qtyPrograms - 1) != shell_original_stdin &&
-        getCommandStdin(command, qtyPrograms - 1) != 0xFF)
-    {
-        closePipe(getCommandStdin(command, qtyPrograms - 1));
-    }
-
-    // Restaurar los descriptores de E/S originales de la shell
+    // Restaurar stdin y stdout originales
     current_stdin_fd = shell_original_stdin;
     current_stdout_fd = shell_original_stdout;
 }
@@ -666,11 +630,11 @@ static void filter(int argc, char *argv[])
         return;
     }
     char c; 
-    while((c = getchar()) != '\n' && c != EOF)
+    while((c = my_getchar()) != '\n' && c != EOF)
     {
         if (!ES_VOCAL(c) && c != '\n')
         {
-            putchar(c);
+            my_putchar(c);
         }
         
     }
@@ -679,16 +643,28 @@ static void filter(int argc, char *argv[])
 }
 
 static int cat(int argc, char *argv[]) {
-	char c;
-	while ((int) (c = getchar()) != EOF)
-		putchar(c);
-	return 0;
+    int c;
+    int prevWasNewline = 1;
+    while (1) {
+        c = my_getchar();
+        if (c == 0)
+            continue;
+            my_putchar(c);
+        if (c == '\n') { //Doble enter termina el cat 
+            if (prevWasNewline) 
+                break;
+            prevWasNewline = 1;
+        } else {
+            prevWasNewline = 0;
+        }
+    }
+    return 0;
 }
 
 static int wc(int argc, char *argv[]){
     char c;
     int lineCounter=0;
-    while((int) (c = getchar()) != EOF){
+    while((int) (c = my_getchar()) != EOF){
         lineCounter += (c == '\n');
     }
     printf("La cantidad de lineas: %d\n", lineCounter);
