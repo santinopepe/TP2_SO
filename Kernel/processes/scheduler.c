@@ -109,6 +109,9 @@ int killProcess(uint16_t pid) {
     if (scheduler->process[pid].basePointer != 0) {
         free((void *)(scheduler->process[pid].basePointer - STACK_SIZE));
     }
+    if(scheduler->process[pid].stack != NULL){
+        free(scheduler->process[pid].stack);
+    }
 
     // Reiniciar campos
     scheduler->process[pid].stack = 0;
