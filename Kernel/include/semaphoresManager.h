@@ -1,6 +1,6 @@
 #include <stdint.h>
 
-#define QUANTITY_OF_SEMAPHORES 256 //ESTO ES UNA LIMITACION
+#define QUANTITY_OF_SEMAPHORES 512 //ESTO ES UNA LIMITACION
 
 
 typedef struct semaphoresManagerCDT * SemaphoreADT;
@@ -50,3 +50,4 @@ int8_t sem_post(uint8_t sem);
 */
 int8_t create_sem(uint8_t sem, uint8_t value); 
 
+int8_t sem_checkUse(uint8_t sem);

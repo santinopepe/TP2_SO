@@ -78,6 +78,7 @@ uint64_t syscallDispatcher(uint64_t nr, uint64_t arg0, uint64_t arg1, uint64_t a
         (Syscall)getUsedMemory,
         (Syscall)getFreeMemory,
         (Syscall)changeFDS,
+        (Syscall)sem_checkUse,
     };
 	return syscalls[nr](arg0, arg1, arg2, arg3, arg4, arg5);
 }

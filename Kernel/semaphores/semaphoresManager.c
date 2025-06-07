@@ -140,3 +140,10 @@ int8_t create_sem(uint8_t sem, uint8_t value){
     
     return 0;
 }
+
+int8_t sem_checkUse(uint8_t sem){
+    if(semaphoresManager == NULL || sem >= QUANTITY_OF_SEMAPHORES){
+        return -1; 
+    }
+    return semaphoresManager->semaphores[sem].used;
+}

@@ -270,4 +270,6 @@ int getFreeMemory();
 
 void changeFDS(uint16_t pid, uint16_t fileDescriptors[]);
 
+int8_t sem_checkUse(uint8_t sem);
+
 #endif

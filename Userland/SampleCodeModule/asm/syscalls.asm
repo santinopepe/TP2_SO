@@ -40,6 +40,7 @@ GLOBAL getMemoryType
 GLOBAL getUsedMemory
 GLOBAL getFreeMemory
 GLOBAL changeFDS
+GLOBAL sem_checkUse
 
 
 read:
@@ -240,5 +241,10 @@ getFreeMemory:
 
 changeFDS:
     mov rax, 39
+    int 80h
+    ret
+
+sem_checkUse:
+    mov rax, 40
     int 80h
     ret
