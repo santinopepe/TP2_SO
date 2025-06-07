@@ -124,14 +124,17 @@ void removePhilosopher() {
 	sem_post(PRINT_ID);
 
 	sem_wait(MUTEX_ID);
-	while (state[LEFT(phylosCount)] == EATING && state[RIGHT(phylosCount)] == EATING) {
-		sem_post(MUTEX_ID);	
-		if(sem_wait(phylosCount)==-1){
-			printf("Devolvió -1");
+
+	if(phylosCount > 1){
+		while (state[LEFT(phylosCount)] == EATING && state[RIGHT(phylosCount)] == EATING) {
+			sem_post(MUTEX_ID);	
+			if(sem_wait(phylosCount)==-1){
+				printf("Devolvió -1");
+			}
+			sem_wait(MUTEX_ID);
 		}
-		sem_wait(MUTEX_ID);
 	}
-		
+	sem_post(phylosCount); // Desbloquea por si está esperando
 	if (killProcess(philosopherPids[phylosCount]) == -1) {
 		printf("Error killing philosopher %d\n", phylosCount);
 		return;
@@ -166,8 +169,9 @@ void takeForks(int phyloId) {
 void putForks(int phyloId) {
 	sem_wait(MUTEX_ID);
 	state[phyloId] = THINKING;
-    for (int i = 0; i < phylosCount; i++) {
-        test(i);
+    for (int i = 1; i <= phylosCount; i++) {
+        int idx = (phyloId + i) % phylosCount;
+        test(idx);
     }
 	sem_post(MUTEX_ID);
 }
@@ -190,7 +194,7 @@ void render() {
 }
 
 void wait() {
-	for (int i = 0; i < 5000000; i++)
+	for (int i = 0; i < 50000000; i++)
 		;
 }
 
@@ -234,6 +238,17 @@ void phylo(int argc, char *argv[]) {
 	}
 
 	startDining();
-	phylosCount = 0;
+
+    for (int i = 0; i < MAX_PHYLOS; i++) {
+        if (philosopherPids[i] > 0) {
+			sem_post(i);
+            killProcess(philosopherPids[i]);
+            sem_close(i);
+            philosopherPids[i] = 0;
+        }
+    }
+    phylosCount = 0;
+	for (volatile int j = 0; j < 10000000; j++);
+
 	return;
 }
