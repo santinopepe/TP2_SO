@@ -130,15 +130,17 @@ int killProcess(uint16_t pid) {
     scheduler->process[pid].fileDescriptors[2] = 0;
 
     uint16_t parentPID = scheduler->process[pid].parentPID;
-    if (parentPID != pid && scheduler->process[parentPID].children_sem != -1) {
+    if (parentPID != pid ) {
         // Elimina el hijo de la lista de hijos del padre
         removeElement(scheduler->process[parentPID].children, &scheduler->process[pid].PID);
 
+        if(scheduler->process[parentPID].children_sem != -1){
         // Si la lista está vacía, todos los hijos terminaron
-        if (isEmpty(scheduler->process[parentPID].children)) {
-            sem_post(scheduler->process[parentPID].children_sem);
-            sem_close(scheduler->process[parentPID].children_sem);
-            scheduler->process[parentPID].children_sem = -1; // Indica que no hay hijos
+            if (isEmpty(scheduler->process[parentPID].children)) {
+                sem_post(scheduler->process[parentPID].children_sem);
+                sem_close(scheduler->process[parentPID].children_sem);
+                scheduler->process[parentPID].children_sem = -1; // Indica que no hay hijos
+            }
         }
     }
 
@@ -222,7 +224,12 @@ uint16_t createProcess(EntryPoint originalEntryPoint, char **argv, int argc, uin
     scheduler->process[pid].argc = argc;
 
 
-    uint16_t parentPID = scheduler->currentPID;
+    uint16_t parentPID;
+    if (scheduler->processCount == 0) {
+        parentPID = pid; // La shell es su propio padre 
+    } else {
+        parentPID = scheduler->currentPID;
+    }
     scheduler->process[pid].parentPID = parentPID;
     scheduler->process[pid].children = createDoubleLinkedList();
     scheduler->process[pid].children_sem = -1;
