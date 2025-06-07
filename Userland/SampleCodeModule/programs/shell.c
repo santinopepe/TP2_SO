@@ -562,6 +562,8 @@ static void ps(int argc, char *argv[])
     {
         printf("%d   %s  %d         %s        %s     %d\n", processes[i].pid, processes[i].name, processes[i].priority, status[processes[i].status], foreground[processes[i].foreground],processes[i].stack);
     }
+
+    free(processes); // Liberamos la memoria asignada para los procesos
 }
 
 static void kill(int argc, char *argv[])
