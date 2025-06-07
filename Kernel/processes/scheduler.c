@@ -63,16 +63,16 @@ int killForegroundProcess(){
     if(scheduler == NULL){
         return -2; 
     }
-    uint8_t has_processes = 0;
-    for (int i = 0; i < MAX_PROCESOS; i++) {
+    uint8_t index = 0;
+    for (int i = 0; index < scheduler->processCount && i < MAX_PROCESOS; i++) {
         // El proceso 0 es la shell
         if ( i != 0 && scheduler->process[i].status != DEAD && scheduler->process[i].fileDescriptors[STDIN] == STDIN ) // o i != shellPID
         {
-            has_processes = 1; // Hay al menos un proceso en foreground
+            index = 1; // Hay al menos un proceso en foreground
             killProcess(i);
         }
     }
-    if (!has_processes) {
+    if (index == 0) {
         return -1; // No hay procesos en foreground
     }
     return 0; 
@@ -420,7 +420,7 @@ ProcessData * processInfo(int * size) {
     uint8_t i = 0; 
     ProcessData *process= malloc(sizeof(ProcessData) * scheduler->processCount);
     int processIndex = 0;
-    while(i < scheduler->processCount ) {
+    while( i < MAX_PROCESOS && processIndex < scheduler->processCount ) {
         if (scheduler->process[i].status != DEAD) {
             process[processIndex].pid = scheduler->process[i].PID;
             process[processIndex].priority = scheduler->process[i].priority;
