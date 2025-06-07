@@ -88,7 +88,7 @@ uint64_t test_sync(uint64_t argc, char *argv[]) { //{name,n, use_sem, 0}
   waitForChildren(); // Espera a que todos los procesos terminen
 
   printf("Todos los procesos han terminado.\n");
-  printf("Final value: %d\n", global);
+  printf("Final value: %d\n\n", global);
 
   return 0;
 }

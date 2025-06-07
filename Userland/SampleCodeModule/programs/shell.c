@@ -430,46 +430,46 @@ static void executePipedCommands(CommandADT command)
             return;
         }
 
-         uint8_t the_pipe_fd = 0; // Based on your GDB trace for this specific run.
-                                 // In a real system, you'd get this from a pipe creation syscall.
-
         uint16_t fileDescriptors1[3];
         uint16_t fileDescriptors2[3];
         uint16_t pid1, pid2;
 
         fileDescriptors1[0] = shell_original_stdin; // cat reads from shell's original stdin
-        fileDescriptors1[1] = the_pipe_fd;          // cat's stdout IS the pipe
+        fileDescriptors1[1] = 0;          // cat's stdout IS the pipe
         fileDescriptors1[2] = STDERR;
 
 
         // 1. Creamos el primer proceso (escritor)
         pid1 = createProcess((EntryPoint)commands[cmd_index1].f, argv1, argc1, 0, fileDescriptors1);
         // 2. Abrimos el pipe para el escritor
-        if (openPipe(pid1, 1 /*WRITE*/) == -1) {
+        if ( ( fileDescriptors1[1] = openPipe(pid1, 1 )) == -1) {
             printErr("Error: Pipe setup failed for writer\n");
             killProcess(pid1);
             return;
         }
+        changeFDS(pid1, fileDescriptors1); // Cambiamos el stdin de la shell al pipe
 
-        fileDescriptors2[0] = the_pipe_fd;          // filter's stdin IS the pipe
+        fileDescriptors2[0] = 0;          // filter's stdin IS the pipe
         fileDescriptors2[1] = shell_original_stdout;// filter writes to shell's original stdout
         fileDescriptors2[2] = STDERR;
 
         // 3. Creamos el segundo proceso (lector)
         pid2 = createProcess((EntryPoint)commands[cmd_index2].f, argv2, argc2, 0, fileDescriptors2);
 
-        if (openPipe(pid2, 0 /*READ*/) == -1) {
+        if (( fileDescriptors2[0] = openPipe(pid2, 0 )) == -1) {
             printErr("Error: Pipe setup failed for reader\n");
             killProcess(pid1);
             killProcess(pid2);
-            closePipe(the_pipe_fd);
+            closePipe(fileDescriptors1[1]); // Cerramos el pipe del escritor
             return;
         }
+
+        changeFDS(pid2, fileDescriptors2); // Cambiamos el stdout de la shell al pipe
         // 4. Esperamos a que ambos procesos terminen
         waitForChildren();
 
         // 5. Cerramos el pipe
-        closePipe(the_pipe_fd);
+        closePipe(fileDescriptors1[1]); // Cerramos el pipe del escritor
       
        
     }
@@ -622,7 +622,7 @@ static int cat(int argc, char *argv[]) {
     int prevWasNewline = 0;
     while (1) {
         c = getchar();
-        if (c == 0)
+        if( c == 0)
             continue;
         putchar(c);
         if (c == '\n') {
@@ -636,6 +636,7 @@ static int cat(int argc, char *argv[]) {
     return 0;
 }
 
+
 static int wc(int argc, char *argv[]) {
     int c;
     int lineCounter = 0;
@@ -644,7 +645,6 @@ static int wc(int argc, char *argv[]) {
         c = getchar();
         if (c == 0)
             continue;
-        putchar(c);
         if (c == '\n') {
             if (prevWasNewline)
                 break;

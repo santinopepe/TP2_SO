@@ -147,7 +147,7 @@ void printNewline(void) {
     }
 }
 
-void printChar(char c) {
+void printChar(int c) {
     if (c == '\b') { // Borrar el caracter anterior 
         if (_X < _charWidth && _Y > 0) { 
             _Y -= _charHeight;

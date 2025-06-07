@@ -43,7 +43,7 @@ void printNewline();
  * @brief  Imprime un caracter en pantalla
  * @param  c: Caracter a imprimir 
  */
-void printChar(char c);
+void printChar(int c);
 
 /**
  * @brief  Imprime una cadena de caracteres en pantalla
