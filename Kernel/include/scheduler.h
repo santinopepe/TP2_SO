@@ -50,7 +50,7 @@ void *schedule(void * prevStackPointer);
 
 int killForegroundProcess();
 
-void processInfo(ProcessData * process); 
+ProcessData * processInfo();
 
 int changeFDS(uint16_t pid, uint16_t fileDescriptors[]); 
 

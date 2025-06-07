@@ -245,7 +245,7 @@ uint16_t getPid();
  * @brief Obtiene la informacion de un proceso
  * @param process: Estructura donde se guardan los datos del proceso
 */
-void processInfo(ProcessData * process);
+ProcessData * processInfo();
 
 /**
  * @brief Espera a que un proceso termine sus hijos

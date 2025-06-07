@@ -127,13 +127,15 @@ int killProcess(uint16_t pid) {
     scheduler->process[pid].fileDescriptors[2] = 0;
 
     uint16_t parentPID = scheduler->process[pid].parentPID;
-    if (parentPID != pid && scheduler->process[parentPID].children != NULL) {
+    if (parentPID != pid && scheduler->process[parentPID].children_sem != -1) {
         // Elimina el hijo de la lista de hijos del padre
         removeElement(scheduler->process[parentPID].children, &scheduler->process[pid].PID);
 
         // Si la lista está vacía, todos los hijos terminaron
         if (isEmpty(scheduler->process[parentPID].children)) {
             sem_post(scheduler->process[parentPID].children_sem);
+            sem_close(scheduler->process[parentPID].children_sem);
+            scheduler->process[parentPID].children_sem = -1; // Indica que no hay hijos
         }
     }
 
@@ -410,26 +412,29 @@ void processWrapper(void (*EntryPoint)(int, char**), int argc, char **argv) {
     killProcess(scheduler->currentPID); // marcalo como DEAD, libera memoria
 }
 
-
-void processInfo(ProcessData * process) {
+ProcessData * processInfo(int * size) {
     SchedulerADT scheduler = getSchedulerADT();
     if (scheduler == NULL) {
         return;
     }
     uint8_t i = 0; 
+    ProcessData *process= malloc(sizeof(ProcessData) * scheduler->processCount);
+    int processIndex = 0;
     while(i < scheduler->processCount ) {
         if (scheduler->process[i].status != DEAD) {
-            process[i].pid = scheduler->process[i].PID;
-            process[i].priority = scheduler->process[i].priority;
-            process[i].foreground = scheduler->process[i].foreground;
-            process[i].stack = scheduler->process[i].stack;
-            process[i].basePointer = scheduler->process[i].basePointer;
-            process[i].status = scheduler->process[i].status;
-            strcpy(process[i].name, scheduler->process[i].name);
+            process[processIndex].pid = scheduler->process[i].PID;
+            process[processIndex].priority = scheduler->process[i].priority;
+            process[processIndex].foreground = scheduler->process[i].foreground;
+            process[processIndex].stack = scheduler->process[i].stack;
+            process[processIndex].basePointer = scheduler->process[i].basePointer;
+            process[processIndex].status = scheduler->process[i].status;
+            process[processIndex].name = scheduler->process[i].name;
+            processIndex++;
         }
         i++;
     }
-
+    *size = processIndex; // Retorna el tamaño del array de procesos
+    return process;
 }
 
 

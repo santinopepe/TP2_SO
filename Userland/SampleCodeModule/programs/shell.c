@@ -549,22 +549,15 @@ static void ps(int argc, char *argv[])
         return;
     }
     char *status[] = {"BLOCKED", "READY", "RUNNING", "ZOMBIEE", "DEAD"};
-    ProcessData processes[MAX_PROCESOS]; 
     char * foreground[2] = {"FOREGROUND", "BACKGROUND"};
 
-    for(int i = 0; i < MAX_PROCESOS; i++)
-    {
-        processes[i].status = DEAD; 
-    }
-    
-    processInfo(processes); // Llamamos a la funcion que obtiene la informacion de los procesos
+    int size=0;
+    ProcessData * processes = processInfo(&size); // Llamamos a la funcion que obtiene la informacion de los procesos
 
 
     printf("PID Nombre Prioridad Estado         Plano          Stack\n");
-    for (int i = 0; i < MAX_PROCESOS; i++)
+    for (int i = 0; i < size; i++)
     {
-        if(processes[i].status == DEAD)
-            continue; 
         printf("%d   %s  %d         %s        %s     %d\n", processes[i].pid, processes[i].name, processes[i].priority, status[processes[i].status], foreground[processes[i].foreground],processes[i].stack);
     }
 }

@@ -35,7 +35,7 @@ typedef enum {
 } ProcessStatus;
 
 typedef struct ProcessData{ 
-    char name[20]; 
+    char *name; 
     uint16_t pid; 
     uint8_t priority;
     uint64_t stack;
