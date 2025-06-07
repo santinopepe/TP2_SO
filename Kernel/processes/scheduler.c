@@ -65,7 +65,7 @@ int killForegroundProcess(){
     }
     uint8_t has_processes = 0;
     for (int i = 0; i < MAX_PROCESOS; i++) {
-        // Suponiendo que el proceso 0 es la shell, o guardás el PID de la shell en una variable
+        // El proceso 0 es la shell
         if ( i != 0 && scheduler->process[i].status != DEAD && scheduler->process[i].fileDescriptors[STDIN] == STDIN ) // o i != shellPID
         {
             has_processes = 1; // Hay al menos un proceso en foreground
@@ -366,30 +366,6 @@ int unblockProcess(uint16_t pid){
     return 0;
 }
 
-ProcessData *ps(){ //lo ideal aca seria devolver un array con la info de cada p{}roceso para luego imprimirlo haciendo el llamado en userland
-    SchedulerADT scheduler = getSchedulerADT(); 
-    if(scheduler == NULL){
-        return NULL; 
-    }
-    ProcessData *processData = malloc(sizeof(ProcessData) * scheduler->processCount); //array de procesos, cada posicion es el pid del proceso
-    if(processData == NULL){
-        return NULL; 
-    }
-
-    for(int i = 0, j=0; i < scheduler->processCount; i++){ //el i recorre el array de procesos y el j recorre el array de procesosData, si el proceso no es muerto se copia en el array de procesosData
-        if(scheduler->process[i].status != DEAD){
-            processData[j].pid = i;
-            processData[j].priority = scheduler->process[i].priority;
-            processData[j].stack = scheduler->process[i].stack;
-            processData[j].basePointer = scheduler->process[i].basePointer;
-            processData[j].foreground = scheduler->process[i].foreground;
-            strcpy(processData[j].name, processData[i].name);
-            j++;
-        }
-    }
-
-    return processData;
-}
 
 void *schedule(void *prevStackPointer) {
     SchedulerADT scheduler = getSchedulerADT();

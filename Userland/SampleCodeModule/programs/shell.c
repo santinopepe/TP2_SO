@@ -182,8 +182,7 @@ void run_shell()
 
 static int getCommandIndex(char *command)
 {
-    int idx = 0;
-    for (; idx < QTY_COMMANDS; idx++)
+    for (int idx = 0; idx < QTY_COMMANDS; idx++)
     {
         if (!strcmp(commands[idx].name, command))
             return idx;
@@ -259,12 +258,14 @@ static void printInfoReg()
 
 static void man(int argc, char *argv[])
 {
-    int idx = getCommandIndex(argv[0]);
-    printf("index %d\n", idx);
-    if (idx != -1)
+    int idx = getCommandIndex(argv[1]);
+    if (idx != -1){
+        printf("index %d\n", idx);
         printf("%s\n", usages[idx]);
-    else
-        printErr(INVALID_COMMAND);
+    }else{
+        printErr("Comando no encontrado.\n");
+    }
+        
 }
 
 static void myClear()
