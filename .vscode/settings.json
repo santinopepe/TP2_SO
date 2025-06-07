@@ -13,6 +13,10 @@
     "cmdparseradt.h": "c",
     "tron.h": "c",
     "stdio.h": "c",
-    "stdlib.h": "c"
+    "stdlib.h": "c",
+    "ostream": "c",
+    "scheduler.h": "c",
+    "semaphoresmanager.h": "c",
+    "time.h": "c"
   }
 }

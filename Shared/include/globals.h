@@ -6,6 +6,8 @@
 #define STDIN 0 
 #define STDOUT 1 
 #define STDERR 2 
+#define DEV_NULL -1
+#define EOF -1
 
 #define MAX_PROCESOS 1000
 

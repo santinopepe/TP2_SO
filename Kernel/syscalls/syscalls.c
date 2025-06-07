@@ -11,6 +11,7 @@
 #include <pipeManager.h>
 #include <semaphoresManager.h>
 #include <scheduler.h>
+#include <globals.h>
 #include "../include/time.h"
 
 /* File Descriptors*/
@@ -19,8 +20,8 @@
 #define STDERR 2
 #define KBDIN 3
 
-static uint8_t syscall_read(uint32_t fd);
-static void syscall_write(uint32_t fd, char c);
+static int syscall_read(uint32_t fd, char * buffer, uint32_t size); 
+static int syscall_write(uint32_t fd, char *buffer, uint64_t size);
 static void syscall_clear();
 static uint32_t syscall_seconds();
 static uint64_t * syscall_registerArray(uint64_t * regarr);
@@ -82,25 +83,46 @@ uint64_t syscallDispatcher(uint64_t nr, uint64_t arg0, uint64_t arg1, uint64_t a
 }
 
 // Read char
-static uint8_t syscall_read(uint32_t fd){
-    switch (fd){
-        case STDIN:
-            return getAscii();
-        case KBDIN:
-            return getScancode();
+static int syscall_read(uint32_t fd, char * buffer, uint32_t size){
+    int16_t fdValue = fd < 3 ? getFileDescriptor(fd) : fd;
+    if (fdValue < 0)
+        return -1;
+
+    if (fdValue == STDIN) {
+        for (uint64_t i = 0; i < size; i++) {
+            buffer[i] = getAscii();
+            if ((int) buffer[i] == EOF)
+                return i + 1;
+        }
+        return size;
     }
-    return 0;
+    else if (fdValue >= 3) {
+        int ret = readPipe(fdValue, buffer, size);
+        return (ret >= 0) ? ret : -1;
+    }
+    return -1;
 }
 
-// Write char
-static void syscall_write(uint32_t fd, char c){
-    Color prevColor = getFontColor();
-    if(fd == STDERR)
-        setFontColor(ERROR_COLOR);
-    else if(fd != STDOUT)
-        return;
-    printChar(c);
-    setFontColor(prevColor);
+
+static int syscall_write(uint32_t fd, char *buffer, uint64_t size) {
+    if (fd == STDERR)
+        return 0; // O implementá lógica para STDERR
+
+    int64_t fdProcess = fd < 3 ? getFileDescriptor(fd) : fd;
+    if (fdProcess < 0)
+        return -1;
+
+    if (fdProcess == STDOUT) {
+        for (int i = 0; i < size; i++) {
+            printChar(buffer[i]);
+        }
+        return size;
+    }
+    else if (fdProcess >= 3) {
+        int ret = writePipe(fdProcess, buffer, size);
+        return (ret >= 0) ? ret : -1;
+    }
+    return -1;
 }
 
 // Clear

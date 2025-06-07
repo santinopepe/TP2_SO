@@ -48,12 +48,6 @@ void printNChars(char c, int n);
 int getchar();
 
 /**
- * @brief Devuelve un scancode escrito en KBDIN
- * @return Scancode 
- */
-char getScanCode();
-
-/**
  * @brief Permite leer varios tipos de datos de una sola vez (%d, %s, &c, %x, ...)
  * @param fmt: Formato de lo que se desea leer de STDIN
  * @param ... 

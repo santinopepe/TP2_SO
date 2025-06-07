@@ -31,7 +31,7 @@ uint64_t test_mm(uint64_t argc, char *argv[]) {
     rq = 0;
     total = 0;
 
-    // Request as many blocks as we can
+    printf("Fase 1: Solicitando bloques de memoria...\n");
     while (rq < MAX_BLOCKS && total < max_memory) {
       mm_rqs[rq].size = GetUniform(max_memory - total - 1) + 1;
       mm_rqs[rq].address = malloc(mm_rqs[rq].size);
@@ -42,6 +42,8 @@ uint64_t test_mm(uint64_t argc, char *argv[]) {
       }
     }
 
+    printf(" -> Se solicitaron %d bloques, sumando %d bytes.\n", rq, total);
+    printf("Fase 2: Chequeando Memoria\n");
     uint32_t i;
     for (i = 0; i < rq; i++)
       if (mm_rqs[i].address)
@@ -53,8 +55,9 @@ uint64_t test_mm(uint64_t argc, char *argv[]) {
           printf("test_mm ERROR\n");
           return -1;
         }
-      printf("test_mm: Se solicitaron %d bloques, sumando %d bytes.\n", rq, total);
+    
 
+    printf("Fase 3: Liberando memoria...\n");
     for (i = 0; i < rq; i++)
       if (mm_rqs[i].address)
         free(mm_rqs[i].address);

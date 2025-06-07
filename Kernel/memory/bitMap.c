@@ -69,9 +69,6 @@ void *malloc(uint64_t size) {
 
 				memoryManager->usedBlocks += blocksNeeded;
 
-				
-
-
 				return (uint8_t *) memoryManager->arena + (i - freeBlocks + 1) * BLOCK_SIZE;
 			}
 		}
@@ -103,9 +100,6 @@ void free(void *p) {
 		memoryManager->bitmap[i] = FREE;
 		memoryManager->usedBlocks--;
 	}
-
-	
-
 }
 
 static MemoryManagerADT getMemoryManager() {

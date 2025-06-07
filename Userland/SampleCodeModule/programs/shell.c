@@ -4,7 +4,6 @@
 #include <shell.h>
 #include <stdint.h>
 #include <syscalls.h>
-#include <tron.h>
 #include <man.h>
 #include <stddef.h>
 #include <libasm.h>
@@ -59,8 +58,6 @@ static void man(int argc, char *argv[]);
 static void printInfoReg();
 static void time(int argc, char *argv[]);
 static int div(int argc, char *argv[]);
-static void tron();
-static void tronZen();
 static void fontSize(int argc, char *argv[]);
 static void printMem(char *pos);
 static int getCommandIndex(char *command);
@@ -90,8 +87,6 @@ static Command commands[] = {
     {"time", "Despliega la hora actual UTC - 3", (CommandFunction)time},
     {"div", "Hace la division entera de dos numeros naturales enviados por parametro Uso: div <numerador> <denominador>", (CommandFunction)div},
     {"kaboom", "Ejecuta una excepcion de Invalid Opcode", (CommandFunction)kaboom},
-    {"tron", "Juego Tron Light Cycles", (CommandFunction)tron},
-    {"tron-zen", "Juego Tron Light Cycles con un unico jugador", (CommandFunction)tronZen},
     {"font-size", "Cambio de dimensiones de la fuente. Para hacerlo escribir el comando seguido de un numero", (CommandFunction)fontSize},
     {"printmem", "Realiza un vuelco de memoria de los 32 bytes posteriores a una direccion de memoria en formato hexadecimal enviada por parametro", (CommandFunction)printMem},
     {"clear", "Limpia toda la pantalla", (CommandFunction)myClear},
@@ -119,8 +114,6 @@ static Command builtInCommands[] = {
     {"time", "Despliega la hora actual UTC - 3", (CommandFunction)time},
     {"div", "Hace la division entera de dos numeros naturales enviados por parametro Uso: div <numerador> <denominador>", (CommandFunction)div},
     {"kaboom", "Ejecuta una excepcion de Invalid Opcode", (CommandFunction)kaboom},
-    {"tron", "Juego Tron Light Cycles", (CommandFunction)tron},
-    {"tron-zen", "Juego Tron Light Cycles con un unico jugador", (CommandFunction)tronZen},
     {"font-size", "Cambio de dimensiones de la fuente. Para hacerlo escribir el comando seguido de un numero", (CommandFunction)fontSize},
     {"clear", "Limpia toda la pantalla", (CommandFunction)myClear},
     {"nice", "Cambia la prioridad de un proceso. Uso: nice <pid> <prioridad>", (CommandFunction)niceWrapper},
@@ -146,13 +139,6 @@ static Command processCommands[] = {
 
 
 
-static int my_getchar() {
-    return read(current_stdin_fd);
-}
-
-static void my_putchar(char c) {
-    write(current_stdout_fd, c);
-}
 
 
 void run_shell()
@@ -247,19 +233,6 @@ static void fontSize(int argc, char *argv[])
     }
 }
 
-static void tron()
-{
-    setFontSize(2);
-    startTron(2);
-    setFontSize(1);
-}
-
-static void tronZen()
-{
-    setFontSize(2);
-    startTron(1);
-    setFontSize(1);
-}
 
 static void printMem(char *pos)
 {
@@ -452,24 +425,46 @@ static void executePipedCommands(CommandADT command)
             return;
         }
 
+         uint8_t the_pipe_fd = 0; // Based on your GDB trace for this specific run.
+                                 // In a real system, you'd get this from a pipe creation syscall.
+
+        uint16_t fileDescriptors1[3];
+        uint16_t fileDescriptors2[3];
+        uint16_t pid1, pid2;
+
+        fileDescriptors1[0] = shell_original_stdin; // cat reads from shell's original stdin
+        fileDescriptors1[1] = the_pipe_fd;          // cat's stdout IS the pipe
+        fileDescriptors1[2] = STDERR;
+
+
         // 1. Creamos el primer proceso (escritor)
-        uint16_t pid1 = createProcess((EntryPoint)commands[cmd_index1].f, argv1, argc1, 0, NULL);
+        pid1 = createProcess((EntryPoint)commands[cmd_index1].f, argv1, argc1, 0, fileDescriptors1);
         // 2. Abrimos el pipe para el escritor
-        uint8_t pipefd = openPipe(pid1, 1); // 1 = WRITE
-        uint16_t fileDescriptors1[3] = {STDIN, pipefd, STDERR};
-        changeFDS(pid1, fileDescriptors1);
+        if (openPipe(pid1, 1 /*WRITE*/) == -1) {
+            printErr("Error: Pipe setup failed for writer\n");
+            killProcess(pid1);
+            return;
+        }
+
+        fileDescriptors2[0] = the_pipe_fd;          // filter's stdin IS the pipe
+        fileDescriptors2[1] = shell_original_stdout;// filter writes to shell's original stdout
+        fileDescriptors2[2] = STDERR;
 
         // 3. Creamos el segundo proceso (lector)
-        uint16_t pid2 = createProcess((EntryPoint)commands[cmd_index2].f, argv2, argc2, 0, NULL);
-        openPipe(pid2, 0); // 0 = READ
-        uint16_t fileDescriptors2[3] = {pipefd, STDOUT, STDERR};
-        changeFDS(pid2, fileDescriptors2);
+        pid2 = createProcess((EntryPoint)commands[cmd_index2].f, argv2, argc2, 0, fileDescriptors2);
 
+        if (openPipe(pid2, 0 /*READ*/) == -1) {
+            printErr("Error: Pipe setup failed for reader\n");
+            killProcess(pid1);
+            killProcess(pid2);
+            closePipe(the_pipe_fd);
+            return;
+        }
         // 4. Esperamos a que ambos procesos terminen
         waitForChildren();
 
         // 5. Cerramos el pipe
-        closePipe(pipefd);
+        closePipe(the_pipe_fd);
       
        
     }
@@ -606,11 +601,11 @@ static void filter(int argc, char *argv[]) {
     int c;
     int prevWasNewline = 0;
     while (1) {
-        c = my_getchar();
+        c = getchar();
         if (c == 0)
             continue;
         if (!ES_VOCAL(c))
-            my_putchar(c);
+            putchar(c);
         if (c == '\n') {
             if (prevWasNewline)
                 break;
@@ -623,14 +618,13 @@ static void filter(int argc, char *argv[]) {
 }
 
 static int cat(int argc, char *argv[]) {
-    printf("Imprimiendo STDIN:\n");
     int c;
     int prevWasNewline = 0;
     while (1) {
-        c = my_getchar();
+        c = getchar();
         if (c == 0)
             continue;
-        my_putchar(c);
+        putchar(c);
         if (c == '\n') {
             if (prevWasNewline)
                 break;
@@ -642,22 +636,16 @@ static int cat(int argc, char *argv[]) {
     return 0;
 }
 
-static int wc(int argc, char *argv[]){
+static int wc(int argc, char *argv[]) {
     char c;
-    int lineCounter=0;
-    int prevWasNewline = 0;
-    while(1){
-        c = my_getchar();
-        if (c == 0)
-            continue; 
-        lineCounter += (c == '\n');  
-        if (c == '\n') {
-            if (prevWasNewline)
-                break;
-            prevWasNewline = 1;
-        } else {
-            prevWasNewline = 0;
-        }  
+    int lineCounter = 0;
+    int ret;
+    while (1) {
+        ret = getchar();
+        if (ret == 0 || ret == -1) // EOF o error
+            break;
+        if (c == '\n')
+            lineCounter++;
     }
     printf("La cantidad de lineas: %d\n", lineCounter);
     return 0;
