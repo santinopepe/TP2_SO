@@ -111,6 +111,7 @@ int8_t sem_post(uint8_t sem){
 
     while(!isEmpty(semaphoresManager->semaphores[sem].waitingProcesses)){
         int16_t * pid = (int16_t *) getFirst(semaphoresManager->semaphores[sem].waitingProcesses); // get and remove
+        removeElement(semaphoresManager->semaphores[sem].waitingProcesses, pid);
         Process * process = findProcess(*pid);
         if (process == NULL || process->status == DEAD){
             free(pid);

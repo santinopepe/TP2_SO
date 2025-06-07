@@ -407,7 +407,9 @@ static void executePipedCommands(CommandADT command)
         } else {
             uint16_t fileDescriptors[3] = {shell_original_stdin, shell_original_stdout, STDERR};
             uint16_t pid = createProcess((EntryPoint)commands[cmd_index_in_shell].f, argv, argc, 0, fileDescriptors);
-            waitForChildren();
+            if(!getIsBackground(command, 0)) {
+                waitForChildren();
+            } 
         }
     } else if (qtyPrograms == 2) {
          // Un solo pipe permitido
@@ -631,15 +633,21 @@ static int cat(int argc, char *argv[]) {
 }
 
 static int wc(int argc, char *argv[]) {
-    char c;
+    int c;
     int lineCounter = 0;
-    int ret;
+    int prevWasNewline = 0;
     while (1) {
-        ret = getchar();
-        if (ret == 0 || ret == -1) // EOF o error
-            break;
-        if (c == '\n')
+        c = getchar();
+        if (c == 0)
+            continue;
+        if (c == '\n') {
+            if (prevWasNewline)
+                break;
             lineCounter++;
+            prevWasNewline = 1;
+        } else {
+            prevWasNewline = 0;
+        }
     }
     printf("La cantidad de lineas: %d\n", lineCounter);
     return 0;
