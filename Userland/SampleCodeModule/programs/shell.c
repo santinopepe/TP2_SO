@@ -399,15 +399,17 @@ static void executePipedCommands(CommandADT command)
             return;
         }
 
-        current_stdin_fd = shell_original_stdin;
-        current_stdout_fd = shell_original_stdout;
 
         if (isBuiltinCommand(cmdName)) {
             commands[cmd_index_in_shell].f(argc, argv);
         } else {
-            uint16_t fileDescriptors[3] = {shell_original_stdin, shell_original_stdout, STDERR};
+            uint8_t is_background = getIsBackground(command, 0);
+            uint16_t fileDescriptors[3] = {STDIN, STDOUT, STDERR};
+            if(is_background){
+                fileDescriptors[0] = 1;
+            }
             uint16_t pid = createProcess((EntryPoint)commands[cmd_index_in_shell].f, argv, argc, 0, fileDescriptors);
-            if(!getIsBackground(command, 0)) {
+            if(!is_background) {
                 waitForChildren();
             } 
         }
@@ -551,7 +553,7 @@ static void ps(int argc, char *argv[])
         return;
     }
     char *status[] = {"BLOCKED", "READY", "RUNNING", "ZOMBIEE", "DEAD"};
-    char * foreground[2] = {"FOREGROUND", "BACKGROUND"};
+    char * foreground[2] = { "BACKGROUND", "FOREGROUND"};
 
     int size=0;
     ProcessData * processes = processInfo(&size); // Llamamos a la funcion que obtiene la informacion de los procesos
@@ -640,6 +642,7 @@ static int wc(int argc, char *argv[]) {
         c = getchar();
         if (c == 0)
             continue;
+        putchar(c);
         if (c == '\n') {
             if (prevWasNewline)
                 break;
