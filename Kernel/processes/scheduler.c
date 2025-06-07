@@ -378,6 +378,10 @@ void *schedule(void *prevStackPointer) {
         return prevStackPointer;
     }
 
+    if(scheduler->process[scheduler->currentPID].quantum == 0 && scheduler->readyList->first != NULL){
+        scheduler->process[scheduler->currentPID].quantum = MIN_QUANTUM * (1 + scheduler->process[scheduler->currentPID].priority);
+    }
+
     // Decrementar quantum
     scheduler->quantum--;
     if (scheduler->quantum > 0 && scheduler->process[scheduler->currentPID].status == RUNNING) {
@@ -393,8 +397,6 @@ void *schedule(void *prevStackPointer) {
         scheduler->quantum = scheduler->process[scheduler->currentPID].quantum;
         scheduler->hasStarted = 1; // Indica que el scheduler ha comenzado a funcionar
     }
-
-   
 
     // Verificar que RSP no sea nulo
     if (scheduler->process[scheduler->currentPID].rsp == NULL) {
