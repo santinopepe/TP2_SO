@@ -40,11 +40,11 @@ void printErr(const char * s) {
 }
 
 int getchar() {
-    char c;
+    int c;
     int ret = read(STDIN, &c, 1);
     if (ret == 1)
-        return (unsigned char)c;
-    return 0; 
+        return c;
+    return EOF; 
 }
 
 

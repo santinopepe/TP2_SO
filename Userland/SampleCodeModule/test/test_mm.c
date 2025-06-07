@@ -1,4 +1,4 @@
-#include <syscalls.h>
+/*#include <syscalls.h>
 #include "test_util.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -63,9 +63,10 @@ uint64_t test_mm(uint64_t argc, char *argv[]) {
         free(mm_rqs[i].address);
 
   }
-}
+  printf("test_mm completado con EXITO!\n\n");
+}*/
 
-/*
+
 #include <tests.h>     
 #include <test_util.h>
 #include <stdlib.h>       
@@ -167,6 +168,6 @@ int test_mm(int argc, char *argv[]) {
      printf(" -> Memoria liberada.\n");
 
 
-    printf("test_mm completado con EXITO!\n");
+    printf("test_mm completado con EXITO!\n\n");
     return 0; 
-}*/
+}

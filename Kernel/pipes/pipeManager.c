@@ -83,7 +83,7 @@ uint8_t openPipe(uint16_t pid, uint8_t mode)
     }
 
     Pipe newPipe = createPipe();
-    newPipe.fd = pipeIndex;
+    newPipe.fd = pipeIndex + 3; // Asignamos un fd a partir de 3 (0, 1, 2 son stdin, stdout, stderr)
     if (mode == READ){
         newPipe.inputPID = pid;
     } else if (mode == WRITE){
@@ -94,20 +94,20 @@ uint8_t openPipe(uint16_t pid, uint8_t mode)
 
     pipeManager->pipes[pipeIndex] = newPipe;
     pipeManager->pipeCount++;
-    return pipeIndex;
+    return pipeManager->pipes[pipeIndex].fd;
 }
 
 uint8_t closePipe(uint8_t fd)
 {
 
-    if (fd > MAX_PIPES || pipeManager->pipes[fd].fd == -1)
+    if (fd > MAX_PIPES || pipeManager->pipes[fd - 3].fd == -1)
     {
         return 0;
     }
 
-    pipeManager->pipes[fd].fd = -1;
-    pipeManager->pipes[fd].inputPID = -1;
-    pipeManager->pipes[fd].outputPID = -1;
+    pipeManager->pipes[fd - 3].fd = -1;
+    pipeManager->pipes[fd - 3].inputPID = -1;
+    pipeManager->pipes[fd - 3].outputPID = -1;
     pipeManager->pipeCount--;
 
     return 1;
@@ -123,54 +123,62 @@ uint8_t writePipe(uint8_t fd, char *buffer, uint8_t size)
     uint8_t written = 0;
     for (int i = 0; i < size; i++)
     {
-        if (pipeManager->pipes[fd].size == PIPE_SIZE){
-            pipeManager->pipes[fd].writeLock = 1;
-            blockProcess(pipeManager->pipes[fd].outputPID);
-            break; 
+        while(pipeManager->pipes[fd - 3].size == PIPE_SIZE){
+            pipeManager->pipes[fd -3].writeLock = 1;
+            blockProcess(pipeManager->pipes[fd -3].outputPID);
+            yield();     
         }
-        pipeManager->pipes[fd].buffer[pipeManager->pipes[fd].writeIndex] = buffer[i];
-        pipeManager->pipes[fd].writeIndex = (pipeManager->pipes[fd].writeIndex + 1) % PIPE_SIZE;
-        pipeManager->pipes[fd].size++;
+        pipeManager->pipes[fd-3].buffer[pipeManager->pipes[fd-3].writeIndex] = buffer[i];
+        pipeManager->pipes[fd-3].writeIndex = (pipeManager->pipes[fd-3].writeIndex + 1) % PIPE_SIZE;
+        pipeManager->pipes[fd-3].size++;
         written++;
 
-        if (pipeManager->pipes[fd].readLock)
+        if (pipeManager->pipes[fd-3].readLock)
         {
-            pipeManager->pipes[fd].readLock = 0;
-            unblockProcess(pipeManager->pipes[fd].inputPID);
+            pipeManager->pipes[fd-3].readLock = 0;
+            unblockProcess(pipeManager->pipes[fd-3].inputPID);
         }
     }
-    pipeManager->pipes[fd].writeLock = 0;
+    pipeManager->pipes[fd-3].writeLock = 0;
     return written;
 }
 
 
 uint8_t readPipe(uint8_t fd, char *buffer, uint8_t size)
 {
-    if (fd >= MAX_PIPES || size > PIPE_SIZE || pipeManager->pipes[fd].readLock || pipeManager->pipes[fd].size == 0)
+    if (fd-3 >= MAX_PIPES || size > PIPE_SIZE || pipeManager->pipes[fd-3].readLock || pipeManager->pipes[fd-3].size == 0)
     {
         return 0;
     }
 
-    uint8_t bytesToRead = size < pipeManager->pipes[fd].size ? size : pipeManager->pipes[fd].size;
+    uint8_t bytesToRead = size < pipeManager->pipes[fd-3].size ? size : pipeManager->pipes[fd-3].size;
+
+    if( bytesToRead == 0)
+    {
+        blockProcess(pipeManager->pipes[fd-3].inputPID);
+        pipeManager->pipes[fd-3].readLock = 1;
+        yield();
+        return 0; // No hay datos para leer, bloquea el proceso de lectura
+    }
 
     for (int i = 0; i < bytesToRead; i++)
     {
-        if( pipeManager->pipes[fd].size == 0){
-            pipeManager->pipes[fd].readLock = 1;
-            blockProcess(pipeManager->pipes[fd].inputPID);
-            break; 
+        while( pipeManager->pipes[fd-3].size == 0){
+            pipeManager->pipes[fd-3].readLock = 1;
+            blockProcess(pipeManager->pipes[fd-3].inputPID);
+            yield(); 
         }
 
-        buffer[i] = pipeManager->pipes[fd].buffer[pipeManager->pipes[fd].readIndex];
-        pipeManager->pipes[fd].readIndex = (pipeManager->pipes[fd].readIndex + 1) % PIPE_SIZE;
-        pipeManager->pipes[fd].size--;
+        buffer[i] = pipeManager->pipes[fd-3].buffer[pipeManager->pipes[fd-3].readIndex];
+        pipeManager->pipes[fd-3].readIndex = (pipeManager->pipes[fd-3].readIndex + 1) % PIPE_SIZE;
+        pipeManager->pipes[fd-3].size--;
 
-        if (pipeManager->pipes[fd].writeLock)
+        if (pipeManager->pipes[fd-3].writeLock)
         {
-            pipeManager->pipes[fd].writeLock = 0;
-            unblockProcess(pipeManager->pipes[fd].outputPID);
+            pipeManager->pipes[fd-3].writeLock = 0;
+            unblockProcess(pipeManager->pipes[fd-3].outputPID);
         }
     }
-    pipeManager->pipes[fd].readLock = 0;
+    pipeManager->pipes[fd-3].readLock = 0;
     return bytesToRead;
 }

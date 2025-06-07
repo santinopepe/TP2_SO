@@ -54,7 +54,6 @@ void *memset(void *destiation, int32_t c, uint64_t length);
 
 // clang-format off
 #define NULL ((void *)0)
-#define EOF (-1)
 // clang-format on
 
 #endif

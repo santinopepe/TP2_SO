@@ -86,7 +86,7 @@ void keyboardHandler(){
             else if(key==R_HEX){ //ctrl+R
                 saveRegisters();
             }
-            else if(key==D_HEX && _bufferSize < BUFFER_CAPACITY -1){ //ctrl+D
+            else if(key==D_HEX && _bufferSize < BUFFER_CAPACITY - 1){ //ctrl+D
                 writeKey(EOF);
             }
             else if(key==M_HEX){ //ctrl+M
