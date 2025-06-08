@@ -20,24 +20,27 @@ int phylosCount = 0;
 
 state_t state[MAX_PHYLOS] = {0};
 int philosopherPids[MAX_PHYLOS] = {0};
+int philosopherSemIds[MAX_PHYLOS] = {0};
 
-void takeForks(int phyloId);
-void putForks(int phyloId);
-void test(int phyloId);
-void wait();
-void render();
+static void takeForks(int phyloId, int semId);
+static void putForks(int phyloId, int semId);
+static void test(int phyloId, int *semIds);
+static void wait();
+static void render();
+static int getFreeSemaphoreId() ;
 
-int philosopher(int argc, char *argv[]);
-void addPhilosopher();
-void removePhilosopher();
+static int philosopher(int argc, char *argv[]);
+static void addPhilosopher();
+static void removePhilosopher();
+static void startDining();
 
-void startDining() {
+static void startDining() {
 	char c;
 	while (1) {
 		c = getchar();
-		/*if (c == 0) {
+		if (c == 0) {
 			continue; // Ignore null characters
-		}*/
+		}
 		if(c == 'A') {
 			if(phylosCount == MAX_PHYLOS) {
 				sem_wait(PRINT_ID);
@@ -52,27 +55,19 @@ void startDining() {
 		} else if (c == 'R') {
 			removePhilosopher();
 		} else if (c == 'Q') {
-			while(phylosCount > 0) {
-				removePhilosopher();
+			for (int i = phylosCount - 1; i >= 0; i--) {
+				int semId = philosopherSemIds[i];
+				sem_post(semId); // Desbloquea si está esperando
+				killProcess(philosopherPids[i]);
+				sem_close(semId);
+				philosopherPids[i] = 0;
+				state[i] = THINKING;
 			}
+			phylosCount = 0;
 			break;
 		}
 	}
 
-	/*for (int i = 0; i < phylosCount; i++) {
-		if (killProcess(philosopherPids[i]) == -1) {
-			printf("Error killing philosopher %d\n", i);
-			
-			return;
-		}
-		if (sem_close(i) == -1) {
-			printf("Error closing semaphore %d\n", i);
-		
-			return;
-		}
-	}*/
-
-	sem_post(PRINT_ID);
 	if (sem_close(MUTEX_ID) == -1) {
 		printf("Error closing semaphpore mutex\n");
 		return;
@@ -84,107 +79,122 @@ void startDining() {
 	return;
 }
 
-void addPhilosopher() {
-	sem_wait(MUTEX_ID);
-	state[phylosCount] = THINKING;
-	char phyloBuff[PHYLO_BUFFER_SIZE] = {0};
-	sem_close(phylosCount);
-	if (create_sem(phylosCount, 0) == -1) {
-		printf("Error creating semaphore %d\n", phylosCount);
-		return;
-	}
+static void addPhilosopher() {
+    sem_wait(MUTEX_ID);
+    state[phylosCount] = THINKING;
+    char phyloBuff[PHYLO_BUFFER_SIZE] = {0};
 
-	itoa(phylosCount, phyloBuff, 10);
-	char *params[] = {"philosopher", phyloBuff};
-	
+    int semId = getFreeSemaphoreId();
+    if (semId == -1) {
+        printf("No free semaphores available for philosopher %d\n", phylosCount);
+        sem_post(MUTEX_ID);
+        return;
+    }
 
-	philosopherPids[phylosCount] = createProcess((EntryPoint) philosopher, params, 2, 1, fileDescriptors);
-	if (philosopherPids[phylosCount] < 0) {
-		printf("Error creating philosopher %d\n", phylosCount);
-		return;
-	}
-	if (unblockProcess(philosopherPids[phylosCount]) == -1) {
-		return;
-	}
+    philosopherSemIds[phylosCount] = semId;
 
-	phylosCount++;
-	sem_post(MUTEX_ID);
+    if (create_sem(semId, 0) == -1) {
+        printf("Error creating semaphore %d\n", semId);
+        sem_post(MUTEX_ID);
+        return;
+    }
+
+    itoa(phylosCount, phyloBuff, 10);
+    char *params[] = {"philosopher", phyloBuff};
+
+    philosopherPids[phylosCount] = createProcess((EntryPoint) philosopher, params, 2, 1, fileDescriptors);
+    if (philosopherPids[phylosCount] < 0) {
+        printf("Error creating philosopher %d\n", phylosCount);
+        sem_close(semId);
+        sem_post(MUTEX_ID);
+        return;
+    }
+    if (unblockProcess(philosopherPids[phylosCount]) == -1) {
+        sem_close(semId);
+        sem_post(MUTEX_ID);
+        return;
+    }
+
+    phylosCount++;
+    sem_post(MUTEX_ID);
 }
 
-void removePhilosopher() {
-	/*if (phylosCount <= MIN_PHYLOS) {
-		sem_wait(PRINT_ID);
-		printf("Minimum philosophers reached\n");
-		sem_post(PRINT_ID);
-		return;
-	}*/
-	phylosCount--;
-	sem_wait(PRINT_ID);
-	printf("Removing philosopher: %d\n", phylosCount);
-	sem_post(PRINT_ID);
+static void removePhilosopher() {
+    int idx = phylosCount - 1;
+    if (idx < 0) return;
 
-	sem_wait(MUTEX_ID);
+    sem_wait(PRINT_ID);
+    printf("Removing philosopher: %d\n", idx);
+    sem_post(PRINT_ID);
 
-	if(phylosCount > 1){
-		while (state[LEFT(phylosCount)] == EATING && state[RIGHT(phylosCount)] == EATING) {
-			sem_post(MUTEX_ID);	
-			if(sem_wait(phylosCount)==-1){
-				printf("Devolvió -1");
-			}
-			sem_wait(MUTEX_ID);
-		}
-	}
-	sem_post(phylosCount); // Desbloquea por si está esperando
-	if (killProcess(philosopherPids[phylosCount]) == -1) {
-		printf("Error killing philosopher %d\n", phylosCount);
-		return;
-	}
-	if (sem_close(phylosCount) == -1) {
-		printf("Error closing semaphore %d\n", phylosCount);
-		return;
-	}
+    sem_wait(MUTEX_ID);
 
-	sem_post(MUTEX_ID);
+    int semId = philosopherSemIds[idx];
+
+    if(phylosCount > 1){
+        while (state[LEFT(idx)] == EATING && state[RIGHT(idx)] == EATING) {
+            sem_post(MUTEX_ID);	
+            if(sem_wait(semId)==-1){
+                printf("Devolvió -1");
+            }
+            sem_wait(MUTEX_ID);
+        }
+    }
+    sem_post(semId); // Desbloquea por si está esperando
+    if (killProcess(philosopherPids[idx]) == -1) {
+        printf("Error killing philosopher %d\n", idx);
+        sem_post(MUTEX_ID);
+        return;
+    }
+    if (sem_close(semId) == -1) {
+        printf("Error closing semaphore %d\n", semId);
+        sem_post(MUTEX_ID);
+        return;
+    }
+
+    phylosCount--;
+    sem_post(MUTEX_ID);
 }
 
-int philosopher(int argc, char *argv[]) {
-	int i = atoi(argv[1]);
-	while (1) {
-		wait();
-		takeForks(i);
-		wait();
-		putForks(i);
-	}
-	return 0;
+static int philosopher(int argc, char *argv[]) {
+    int i = atoi(argv[1]);
+    int semId = philosopherSemIds[i];
+    while (1) {
+        wait();
+        takeForks(i, semId);
+        wait();
+        putForks(i, semId);
+    }
+    return 0;
 }
 
-void takeForks(int phyloId) {
-	sem_wait(MUTEX_ID);
-	state[phyloId] = HUNGRY;
-	test(phyloId);
-	sem_post(MUTEX_ID);
-	sem_wait(phyloId);
+static void takeForks(int phyloId, int semId) {
+    sem_wait(MUTEX_ID);
+    state[phyloId] = HUNGRY;
+    test(phyloId, philosopherSemIds);
+    sem_post(MUTEX_ID);
+    sem_wait(semId);
 }
 
-void putForks(int phyloId) {
-	sem_wait(MUTEX_ID);
-	state[phyloId] = THINKING;
+static void putForks(int phyloId, int semId) {
+    sem_wait(MUTEX_ID);
+    state[phyloId] = THINKING;
     for (int i = 1; i <= phylosCount; i++) {
         int idx = (phyloId + i) % phylosCount;
-        test(idx);
+        test(idx, philosopherSemIds);
     }
-	sem_post(MUTEX_ID);
+    sem_post(MUTEX_ID);
 }
 
-void test(int phyloId) {
-	if (state[phyloId] == HUNGRY && state[LEFT(phyloId)] != EATING && state[RIGHT(phyloId)] != EATING) {
-		state[phyloId] = EATING;
-		sem_post(phyloId);
-	}
-	render();
+static void test(int phyloId, int *semIds) {
+    if (state[phyloId] == HUNGRY && state[LEFT(phyloId)] != EATING && state[RIGHT(phyloId)] != EATING) {
+        state[phyloId] = EATING;
+        sem_post(semIds[phyloId]);
+    }
+    render();
 }
 
-void render() {
+static void render() {
 	sem_wait(PRINT_ID);
 	for (int i = 0; i < phylosCount; i++) {
 		printf(state[i] == EATING ? "E " : ". ");
@@ -193,7 +203,7 @@ void render() {
 	sem_post(PRINT_ID);
 }
 
-void wait() {
+static void wait() {
 	for (int i = 0; i < 50000000; i++)
 		;
 }
@@ -251,4 +261,13 @@ void phylo(int argc, char *argv[]) {
 	for (volatile int j = 0; j < 10000000; j++);
 
 	return;
+}
+
+static int getFreeSemaphoreId() {
+    for (int i = 0; i < MAX_PHYLOS; i++) {
+        if (sem_checkUse(i) == 0) {
+            return i;
+        }
+    }
+    return -1; // No hay semáforos libres
 }
