@@ -10,6 +10,7 @@
 #include <string.h>
 #include <globals.h>
 #include <semaphoresManager.h>
+#include <pipeManager.h>
 
 
 
@@ -109,7 +110,7 @@ int killProcess(uint16_t pid) {
     if (scheduler->process[pid].basePointer != 0) {
         free((void *)(scheduler->process[pid].basePointer - STACK_SIZE));
     }
-    if( (int) scheduler->process[pid].stack != NULL){
+    if( (int) scheduler->process[pid].stack != 0){
         free((void *) scheduler->process[pid].stack);
     }
 

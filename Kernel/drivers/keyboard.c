@@ -77,7 +77,7 @@ void keyboardHandler(){
         else if(_ctrl){
             if(key==C_HEX){ //ctrl+C
                 _bufferStart = _bufferSize = 0;
-                int ret = killPipedProcesses();
+                killPipedProcesses();
             }
             else if(key==R_HEX){ //ctrl+R
                 saveRegisters();

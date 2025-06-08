@@ -1,4 +1,6 @@
 #include <processes.h>
+#include <string.h>
+#include <stdlib.h>
 
 
 #define TICKS 0.055
@@ -9,6 +11,8 @@
 
 
 static void printQuantityBars(uint64_t total, uint64_t consumed); 
+static int numDigits(int n);
+static void printSpaces(int n);
 
 void mem(int argc, char *argv[])
 {
@@ -77,10 +81,7 @@ static void printQuantityBars(uint64_t total, uint64_t consumed){
     putchar('\n');
 }
 
-void printSpaces(int n) {
-    for (int i = 0; i < n; i++)
-        putchar(' ');
-}
+
 
 void ps(int argc, char *argv[])
 {
@@ -125,10 +126,15 @@ void ps(int argc, char *argv[])
 }
 
 // Helper para contar dígitos de un número
-int numDigits(int n) {
+static int numDigits(int n) {
     int digits = 1;
     while (n /= 10) digits++;
     return digits;
+}
+
+static void printSpaces(int n) {
+    for (int i = 0; i < n; i++)
+        putchar(' ');
 }
 
 void kill(int argc, char *argv[])

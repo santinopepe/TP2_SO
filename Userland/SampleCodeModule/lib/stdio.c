@@ -1,10 +1,8 @@
 #include <syscalls.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <stdarg.h>
-#include <string.h>
-#include <stdint.h>
 #include <sound.h>
+#include <stdlib.h>
 
 #define CURSOR_FREQ 10  /* Frecuencia en Ticks del dibujo del cursor*/
 
