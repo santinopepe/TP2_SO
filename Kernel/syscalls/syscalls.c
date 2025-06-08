@@ -100,6 +100,7 @@ static int syscall_read(uint32_t fd, char * buffer, uint32_t size){
     }
     else if (fdValue >= 3) {
         int ret = readPipe(fdValue, buffer, size);
+        yield(); 
         return (ret >= 0) ? ret : -1;
     }
     return -1;
@@ -122,6 +123,7 @@ static int syscall_write(uint32_t fd, char *buffer, uint64_t size) {
     }
     else if (fdProcess >= 3) {
         int ret = writePipe(fdProcess, buffer, size);
+        yield(); 
         return (ret >= 0) ? ret : -1;
     }
     return -1;

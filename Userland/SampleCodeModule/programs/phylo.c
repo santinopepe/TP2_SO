@@ -53,7 +53,14 @@ static void startDining() {
 			sem_post(PRINT_ID);
 			addPhilosopher();
 		} else if (c == 'R') {
-			removePhilosopher();
+            if(phylosCount == MIN_PHYLOS){
+                sem_wait(PRINT_ID);
+                printf("Minimo de filosofos alcanzado\n");
+                sem_post(PRINT_ID);
+            }
+            else{
+			    removePhilosopher();
+            }
 		} else if (c == 'Q') {
 			for (int i = phylosCount - 1; i >= 0; i--) {
 				int semId = philosopherSemIds[i];
@@ -264,7 +271,7 @@ void phylo(int argc, char *argv[]) {
 }
 
 static int getFreeSemaphoreId() {
-    for (int i = 0; i < MAX_PHYLOS; i++) {
+    for (int i = 0; i < QUANTITY_OF_SEMAPHORES; i++) {
         if (sem_checkUse(i) == 0) {
             return i;
         }
