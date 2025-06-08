@@ -77,6 +77,11 @@ static void printQuantityBars(uint64_t total, uint64_t consumed){
     putchar('\n');
 }
 
+void printSpaces(int n) {
+    for (int i = 0; i < n; i++)
+        putchar(' ');
+}
+
 void ps(int argc, char *argv[])
 {
     if (argc != 1)
@@ -85,19 +90,45 @@ void ps(int argc, char *argv[])
         return;
     }
     char *status[] = {"BLOCKED", "READY", "RUNNING", "ZOMBIEE", "DEAD"};
-    char * foreground[2] = { "BACKGROUND", "FOREGROUND"};
+    char *foreground[2] = { "BACKGROUND", "FOREGROUND"};
 
-    int size=0;
-    ProcessData * processes = processInfo(&size); // Llamamos a la funcion que obtiene la informacion de los procesos
+    int size = 0;
+    ProcessData *processes = processInfo(&size);
 
+    // Encabezado alineado
 
-    printf("PID Nombre Prioridad Estado         Plano          Stack\n");
-    for (int i = 0; i < size; i++)
-    {
-        printf("%d   %s  %d         %s        %s     %d\n", processes[i].pid, processes[i].name, processes[i].priority, status[processes[i].status], foreground[processes[i].foreground],processes[i].stack);
+    printf("PID  Nombre    Prioridad     Estado      Plano        Stack\n");
+    for (int i = 0; i < size; i++){
+        printf("%d", processes[i].pid);
+        printSpaces(5 - numDigits(processes[i].pid)); 
+
+        printf("%s", processes[i].name);
+        printSpaces(10 - strlen(processes[i].name)); 
+
+        int prioSpaces = 9 - numDigits(processes[i].priority);
+        int left = prioSpaces / 2;
+        int right = prioSpaces - left;
+        printSpaces(left);
+        printf("%d", processes[i].priority);
+        printSpaces(right+4);
+
+        printf("%s", status[processes[i].status]);
+        printSpaces(11 - strlen(status[processes[i].status])); 
+
+        printf("%s", foreground[processes[i].foreground]);
+        printSpaces(13 - strlen(foreground[processes[i].foreground])); 
+
+        printf("%d\n", processes[i].stack);
     }
 
-    free(processes); // Liberamos la memoria asignada para los procesos
+    free(processes);
+}
+
+// Helper para contar dígitos de un número
+int numDigits(int n) {
+    int digits = 1;
+    while (n /= 10) digits++;
+    return digits;
 }
 
 void kill(int argc, char *argv[])

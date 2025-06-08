@@ -144,11 +144,10 @@ static int getCommandIndex(char *command)
 
 static void help(int argc, char *argv[])
 {
-    for (int i = 0; i < QTY_COMMANDS; i++)
-        printf("%s: %s\r\n", commands[i].name, commands[i].description);
+    for (int i = 0; i < QTY_COMMANDS; i++){
+        printf("%s: %s\n", commands[i].name, commands[i].description);
+    }
 
-    printf("Para ver el manual de un comando en particular"); 
-    putchar(EOF);
 }
 
 
@@ -168,7 +167,6 @@ static void time(int argc, char *argv[])
     uint32_t secs = getSeconds();
     uint32_t h = secs / 3600, m = secs % 3600 / 60, s = secs % 3600 % 60;
     printf("%2d:%2d:%2d\r\n", h, m, s);
-    putchar(EOF);
 }
 
 static void fontSize(int argc, char *argv[])
@@ -409,7 +407,7 @@ static void executePipedCommands(CommandADT command)
 
 
 
-static void changeColor(int argc, char * argv[]){
+static void changeColor(int argc, char * argv[]) {
     if(argc != 2){
         printErr("Uso: changeColor <codigo de color>\n");
         return;
@@ -421,20 +419,10 @@ static void changeColor(int argc, char * argv[]){
     }
     Color colorCode[6] = { LIGHT_GREEN, DARK_GREEN, PINK, MAGENTA, SILVER, RED };
     Color chosenColor = colorCode[color];
-    int prevWasNewline = 0;
     int c;
-    while (1) {
-        c = getchar();
+    while ((c = getchar()) != EOF) { // Termina al recibir EOF
         if (c == 0)
             continue; 
         printfc(chosenColor, "%c", c);
-        if (c == '\n') {
-            if (prevWasNewline)
-                break;
-            prevWasNewline = 1;
-        } else {
-            prevWasNewline = 0;
-        }
     }
-
 }
