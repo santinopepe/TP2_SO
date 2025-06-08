@@ -137,7 +137,8 @@ void filter(int argc, char *argv[]) {
         if (!ES_VOCAL(c))
             putchar(c);
     }
-    putchar('\n');
+    putchar(EOF);
+    
 }
 
 int cat(int argc, char *argv[]) {
@@ -147,6 +148,7 @@ int cat(int argc, char *argv[]) {
             continue;
         putchar(c);
     }
+    putchar(EOF);
     return 0;
 }
 
@@ -162,6 +164,7 @@ int wc(int argc, char *argv[]) {
         }
     }
     printf("Cantidad de lineas: %d\n", lineCounter);
+    putchar(EOF);
     return 0;
 }
 
@@ -184,7 +187,7 @@ void loop(int argc, char *argv[]) {
 		printf("Hello World! PID: %d\n", getPid());
 		wait_time(realTime);
 	}
-
+    putchar(EOF);
     
 	return;
 }

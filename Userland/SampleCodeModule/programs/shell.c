@@ -147,7 +147,8 @@ static void help(int argc, char *argv[])
     for (int i = 0; i < QTY_COMMANDS; i++)
         printf("%s: %s\r\n", commands[i].name, commands[i].description);
 
-    printf("\n\n");
+    printf("Para ver el manual de un comando en particular"); 
+    putchar(EOF);
 }
 
 
@@ -167,6 +168,7 @@ static void time(int argc, char *argv[])
     uint32_t secs = getSeconds();
     uint32_t h = secs / 3600, m = secs % 3600 / 60, s = secs % 3600 % 60;
     printf("%2d:%2d:%2d\r\n", h, m, s);
+    putchar(EOF);
 }
 
 static void fontSize(int argc, char *argv[])

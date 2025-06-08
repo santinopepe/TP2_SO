@@ -42,8 +42,11 @@ void printErr(const char * s) {
 int getchar() {
     char c;
     int ret = read(STDIN, &c, 1);
-    if (ret == 1)
+    if (ret == 1 ) { // Si se leyo un caracter o EOF
         return c;
+    } else if (ret == 0) { 
+        return 0;
+    } 
     return EOF; 
 }
 
