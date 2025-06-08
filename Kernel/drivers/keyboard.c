@@ -25,7 +25,7 @@
 /* Scancode para el snapshot de registros */
 static uint8_t _bufferStart = 0;                /* Indice del comienzo de la cola */
 static char _bufferSize = 0;                    /* Longitud de la cola */
-static uint8_t _buffer[BUFFER_CAPACITY] = {0};  /* Vector ciclico que guarda las teclas 
+static char _buffer[BUFFER_CAPACITY] = {0};  /* Vector ciclico que guarda las teclas 
                                                  * que se van leyendo del teclado */
 
 static uint8_t _ctrl = 0;					  /* Flag para detectar si se presiono ctrl */
@@ -51,7 +51,7 @@ static const char charHexMapShift[] = /* Mapa de scancode con shift a ASCII */
  * @return Indice del elemento en la cola
  */
 
-static void writeKey(uint8_t key);
+static void writeKey(char key);
 
 static void printMem(); 
 
@@ -106,7 +106,7 @@ void keyboardHandler(){
     }
 }
 
-static void writeKey(uint8_t key){
+static void writeKey(char key){
     if (((key & 0x7F) < sizeof(charHexMap) && charHexMap[key & 0x7F] != 0) || (int) key == EOF) {
 		_buffer[getBufferIndex(_bufferSize)] = key;
 		_bufferSize++;
@@ -114,7 +114,7 @@ static void writeKey(uint8_t key){
 	}
 }
 
-uint8_t getScancode() {
+char getScancode() {
     if(_bufferSize > 0){
         char c = _buffer[getBufferIndex(0)];
         _bufferStart = getBufferIndex(1);
@@ -124,7 +124,7 @@ uint8_t getScancode() {
     return 0;
 }
 
-uint8_t getAscii(){
+char getAscii(){
     sem_wait(IO_SEM_ID);
     int scanCode = getScancode();
     if(scanCode == EOF){

@@ -131,39 +131,21 @@ void kill(int argc, char *argv[])
 
 void filter(int argc, char *argv[]) {
     int c;
-    int prevWasNewline = 0;
-    while (1) {
-        c = getchar();
+    while ((c = getchar()) != -1) { // Leer hasta EOF
         if (c == 0)
-            break; 
+            continue; 
         if (!ES_VOCAL(c))
             putchar(c);
-        if (c == '\n') {
-            if (prevWasNewline)
-                break;
-            prevWasNewline = 1;
-        } else {
-            prevWasNewline = 0;
-        }
     }
     putchar('\n');
 }
 
 int cat(int argc, char *argv[]) {
     int c;
-    int prevWasNewline = 0;
-    while (1) {
-        c = getchar();
-        if( c == 0)
-            continue;; 
+    while ((c = getchar()) != EOF) { // Leer hasta EOF
+        if (c == 0)
+            continue;
         putchar(c);
-        if (c == '\n') {
-            if (prevWasNewline)
-                break;
-            prevWasNewline = 1;
-        } else {
-            prevWasNewline = 0;
-        }
     }
     return 0;
 }
@@ -172,21 +154,14 @@ int cat(int argc, char *argv[]) {
 int wc(int argc, char *argv[]) {
     int c;
     int lineCounter = 0;
-    int prevWasNewline = 0;
-    while (1) {
-        c = getchar();
+    while ((c = getchar()) != -1) { // Leer hasta EOF
         if (c == 0)
             continue; 
         if (c == '\n') {
-            if (prevWasNewline)
-                break;
             lineCounter++;
-            prevWasNewline = 1;
-        } else {
-            prevWasNewline = 0;
         }
     }
-    printf("La cantidad de lineas: %d\n", lineCounter);
+    printf("Cantidad de lineas: %d\n", lineCounter);
     return 0;
 }
 
