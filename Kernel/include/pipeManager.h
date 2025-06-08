@@ -69,4 +69,6 @@ uint8_t readPipe(uint8_t fd, char *buffer, uint8_t size);
 
 int killPipedProcesses(); 
 
+void closePipeEndsForPID(uint16_t pid);
+
 #endif

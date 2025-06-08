@@ -114,71 +114,76 @@ uint8_t closePipe(uint8_t fd)
 
 uint8_t writePipe(uint8_t fd, char *buffer, uint8_t size)
 {
-    if (fd >= MAX_PIPES || size > PIPE_SIZE || pipeManager->pipes[fd].writeLock || pipeManager->pipes[fd].size == PIPE_SIZE)
-    {
+    if (fd < 3 || fd-3 >= MAX_PIPES || size > PIPE_SIZE)
         return 0;
-    }
+
+    Pipe *pipe = &pipeManager->pipes[fd-3];
+    if (pipe->fd == -1 || pipe->outputPID == -1)
+        return 0; // Pipe cerrado o sin escritor
 
     uint8_t written = 0;
-    for (int i = 0; i < size; i++)
-    {
-        while(pipeManager->pipes[fd - 3].size == PIPE_SIZE){
-            pipeManager->pipes[fd -3].writeLock = 1;
-            blockProcess(pipeManager->pipes[fd -3].outputPID);
-            yield();     
+    for (int i = 0; i < size; i++) {
+        // Si el buffer está lleno, bloquear escritor
+        while (pipe->size == PIPE_SIZE) {
+            pipe->writeLock = 1;
+            blockProcess(pipe->outputPID);
+            yield();
+            // Si el pipe fue cerrado mientras estaba bloqueado, abortar
+            if (pipe->fd == -1 || pipe->outputPID == -1)
+                return written;
         }
-        pipeManager->pipes[fd-3].buffer[pipeManager->pipes[fd-3].writeIndex] = buffer[i];
-        pipeManager->pipes[fd-3].writeIndex = (pipeManager->pipes[fd-3].writeIndex + 1) % PIPE_SIZE;
-        pipeManager->pipes[fd-3].size++;
+        pipe->buffer[pipe->writeIndex] = buffer[i];
+        pipe->writeIndex = (pipe->writeIndex + 1) % PIPE_SIZE;
+        pipe->size++;
         written++;
 
-        if (pipeManager->pipes[fd-3].readLock)
-        {
-            pipeManager->pipes[fd-3].readLock = 0;
-            unblockProcess(pipeManager->pipes[fd-3].inputPID);
+        // Si hay un lector bloqueado, desbloquearlo
+        if (pipe->readLock) {
+            pipe->readLock = 0;
+            unblockProcess(pipe->inputPID);
         }
     }
-    pipeManager->pipes[fd-3].writeLock = 0;
+    pipe->writeLock = 0;
     return written;
 }
 
-
 uint8_t readPipe(uint8_t fd, char *buffer, uint8_t size)
 {
-    if (fd-3 >= MAX_PIPES || size > PIPE_SIZE || pipeManager->pipes[fd-3].readLock || pipeManager->pipes[fd-3].size == 0)
-    {
+    if (fd < 3 || fd-3 >= MAX_PIPES || size > PIPE_SIZE)
         return 0;
+
+    Pipe *pipe = &pipeManager->pipes[fd-3];
+    if (pipe->fd == -1 || pipe->inputPID == -1)
+        return 0; // Pipe cerrado o sin lector
+
+    // Si no hay datos y el escritor cerró el pipe, devolver EOF
+    if (pipe->size == 0 && pipe->outputPID == -1) {
+        return (uint8_t)-1; // EOF
     }
 
-    uint8_t bytesToRead = size < pipeManager->pipes[fd-3].size ? size : pipeManager->pipes[fd-3].size;
-
-    if( bytesToRead == 0)
-    {
-        blockProcess(pipeManager->pipes[fd-3].inputPID);
-        pipeManager->pipes[fd-3].readLock = 1;
+    // Si no hay datos pero el pipe sigue abierto, bloquear
+    while (pipe->size == 0 && pipe->outputPID != -1) {
+        pipe->readLock = 1;
+        blockProcess(pipe->inputPID);
         yield();
-        return 0; // No hay datos para leer, bloquea el proceso de lectura
+        // Si el pipe fue cerrado mientras estaba bloqueado, devolver EOF
+        if (pipe->size == 0 && pipe->outputPID == -1)
+            return (uint8_t)-1;
     }
 
-    for (int i = 0; i < bytesToRead; i++)
-    {
-        while( pipeManager->pipes[fd-3].size == 0){
-            pipeManager->pipes[fd-3].readLock = 1;
-            blockProcess(pipeManager->pipes[fd-3].inputPID);
-            yield(); 
-        }
+    uint8_t bytesToRead = size < pipe->size ? size : pipe->size;
+    for (int i = 0; i < bytesToRead; i++) {
+        buffer[i] = pipe->buffer[pipe->readIndex];
+        pipe->readIndex = (pipe->readIndex + 1) % PIPE_SIZE;
+        pipe->size--;
 
-        buffer[i] = pipeManager->pipes[fd-3].buffer[pipeManager->pipes[fd-3].readIndex];
-        pipeManager->pipes[fd-3].readIndex = (pipeManager->pipes[fd-3].readIndex + 1) % PIPE_SIZE;
-        pipeManager->pipes[fd-3].size--;
-
-        if (pipeManager->pipes[fd-3].writeLock)
-        {
-            pipeManager->pipes[fd-3].writeLock = 0;
-            unblockProcess(pipeManager->pipes[fd-3].outputPID);
+        // Si hay un escritor bloqueado, desbloquearlo
+        if (pipe->writeLock) {
+            pipe->writeLock = 0;
+            unblockProcess(pipe->outputPID);
         }
     }
-    pipeManager->pipes[fd-3].readLock = 0;
+    pipe->readLock = 0;
     return bytesToRead;
 }
 
@@ -196,4 +201,20 @@ int killPipedProcesses() {
         }
     }
     return killForegroundProcess();
+}
+
+void closePipeEndsForPID(uint16_t pid) {
+    for (int i = 0; i < MAX_PIPES; i++) {
+        Pipe *pipe = &pipeManager->pipes[i];
+        if (pipe->outputPID == pid) {
+            pipe->outputPID = -1;
+        }
+        if (pipe->inputPID == pid) {
+            pipe->inputPID = -1;
+        }
+        // Solo si ambos extremos están cerrados, liberá el pipe:
+        if (pipe->outputPID == -1 && pipe->inputPID == -1 && pipe->fd != -1) {
+            closePipe(pipe->fd);
+        }
+    }
 }

@@ -86,7 +86,7 @@ int killProcess(uint16_t pid) {
     if (scheduler->process[pid].status == DEAD) {
         return -1;
     }
-
+    closePipeEndsForPID(pid);
     // Eliminar de la lista correspondiente
     if (scheduler->process[pid].status == RUNNING || scheduler->process[pid].status == READY) {
         removeElement(scheduler->readyList, &scheduler->process[pid].PID);
