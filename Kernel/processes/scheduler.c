@@ -234,7 +234,7 @@ uint16_t createProcess(EntryPoint originalEntryPoint, char **argv, int argc, uin
     scheduler->process[pid].children = createDoubleLinkedList();
     scheduler->process[pid].children_sem = -1;
 
-    if (parentPID != pid) { // Evita que el proceso 0 se agregue a sí mismo        
+    if (parentPID != pid && scheduler->process[pid].foreground) { // Evita que el proceso 0 se agregue a sí mismo        
         insertLast(scheduler->process[parentPID].children, &scheduler->process[pid].PID);
     }
 
