@@ -78,7 +78,6 @@ uint8_t openPipe(uint16_t pid, uint8_t mode)
 
     if (pipeIndex == -1)
     {
-        printf("Error: No se pudo abrir el pipe, todos los pipes estan ocupados.\n");
         return -1; 
     }
 
@@ -181,4 +180,20 @@ uint8_t readPipe(uint8_t fd, char *buffer, uint8_t size)
     }
     pipeManager->pipes[fd-3].readLock = 0;
     return bytesToRead;
+}
+
+int killPipedProcesses() {
+    uint8_t pid = getPid();
+    for (int i = 0; i < MAX_PIPES; i++) {
+        if (pipeManager->pipes[i].inputPID == pid || pipeManager->pipes[i].outputPID == pid) {
+            
+            killProcess(pipeManager->pipes[i].inputPID);
+            killProcess(pipeManager->pipes[i].outputPID);
+            closePipe(pipeManager->pipes[i].fd);
+            pipeManager->pipes[i] = createPipe(); // Reinicializa el pipe
+            pipeManager->pipeCount--;
+            return 0; // Mata el proceso actual y sale de la función
+        }
+    }
+    return killForegroundProcess();
 }

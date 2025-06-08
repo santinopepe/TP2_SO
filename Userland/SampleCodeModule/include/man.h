@@ -15,10 +15,6 @@ char * usages [QTY_COMMANDS] = {
     
     "Uso: kaboom - Lanza una excepción de Invalid Opcode para probar el manejo de errores del sistema. No recibe parámetros.",
     
-    "Uso: tron - Inicia el juego Tron para dos jugadores. El jugador 1 se mueve con las flechas y el jugador 2 con W, A, S, D.\nEl objetivo es evitar chocar con las paredes o las colas.\nEl modo turbo se activa con 'z' para el jugador 1 y '/' para el jugador 2.\nPierde el primer jugador que se choque.",
-    
-    "Uso: tron-zen - Inicia el juego Tron en modo Zen, donde hay un único jugador que debe evitar chocar con su propia cola y con\nlas paredes.",
-    
     "Uso: font-size [1|2|3] - Cambia el tamaño de la fuente de la terminal. Se debe indicar el tamaño deseado como parámetro (1, 2 o 3).\nEjemplo: font-size 2",
     
     "Uso: printmem [DIR] - Imprime los primeros 32 bytes de memoria a partir de la dirección enviada como parámetro, mostrando el\ncontenido en hexadecimal y ASCII.\nEjemplo: printmem 10ff8c",
@@ -54,5 +50,7 @@ char * usages [QTY_COMMANDS] = {
     "Uso: ps - Muestra información sobre todos los procesos vivos, incluyendo PID, estado, prioridad y recursos asignados.",
     
     "Uso: loop <cantidad de segundos> - Crea un proceso que imprime su ID y un saludo cada cierta cantidad de segundos especificada\n por parámetro.",
+
+    "Uso: color <color> - Cambia el color de la fuente de la terminal. El parámetro debe ser un número del 0 al 5 que representa\nun color valido. Los colores validos son:\n 0. Verde claro,\n 1. Verde oscuro,\n 2. Rosa,\n 3. Magenta,\n 4. Plateado,\n 5. Rojo.",
 };
 #endif

@@ -67,4 +67,6 @@ uint8_t writePipe(uint8_t fd, char *buffer, uint8_t size);
  */
 uint8_t readPipe(uint8_t fd, char *buffer, uint8_t size);
 
+int killPipedProcesses(); 
+
 #endif

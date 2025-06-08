@@ -17,6 +17,10 @@
     "ostream": "c",
     "scheduler.h": "c",
     "semaphoresmanager.h": "c",
-    "time.h": "c"
+    "time.h": "c",
+    "tests.h": "c",
+    "libasm.h": "c",
+    "stddef.h": "c",
+    "man.h": "c"
   }
 }

@@ -72,7 +72,8 @@ uint64_t test_mm(uint64_t argc, char *argv[]) {
 #include <stdlib.h>       
 #include <stddef.h>
 #include <stdio.h>
-#include <stdint.h>    
+#include <stdint.h>  
+#include <MemoryManager.h>  
 
 #define MAX_BLOCKS 128
 

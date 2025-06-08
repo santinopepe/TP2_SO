@@ -109,8 +109,8 @@ int killProcess(uint16_t pid) {
     if (scheduler->process[pid].basePointer != 0) {
         free((void *)(scheduler->process[pid].basePointer - STACK_SIZE));
     }
-    if(scheduler->process[pid].stack != NULL){
-        free(scheduler->process[pid].stack);
+    if( (int) scheduler->process[pid].stack != NULL){
+        free((void *) scheduler->process[pid].stack);
     }
 
     // Reiniciar campos
@@ -412,7 +412,7 @@ void *schedule(void *prevStackPointer) {
         return schedule(prevStackPointer); // Intentar con el siguiente proceso
     }
 
-    uint16_t currentPID = scheduler->currentPID;
+    
 
 
     return scheduler->process[scheduler->currentPID].rsp;
@@ -427,7 +427,7 @@ void processWrapper(void (*EntryPoint)(int, char**), int argc, char **argv) {
 ProcessData * processInfo(int * size) {
     SchedulerADT scheduler = getSchedulerADT();
     if (scheduler == NULL) {
-        return;
+        return NULL;
     }
     uint8_t i = 0; 
     ProcessData *process= malloc(sizeof(ProcessData) * scheduler->processCount);

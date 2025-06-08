@@ -3,31 +3,9 @@
 #include <MemoryManager.h>
 #include <lib.h>
 #include <scheduler.h>
+#include "../../Shared/include/string.h"
+#include "../../Shared/include/stdlib.h"
 #include <semaphoresManager.h>
-
-
-static int strlen(const char *str){ //esto Hay que cambiarlo
-    int len = 0;
-    while(str[len] != '\0'){
-        len++;
-    }
-    return len;
-}
-
-// ESTO habria que cambiarlo
-static void strcpy(char *dest, const char *source) {
-    if (dest == NULL || source == NULL) {
-        return;
-    }
-    int i = 0;
-    while (source[i] != '\0') {
-        dest[i] = source[i];
-        i++;
-    }
-    dest[i] = '\0';
-}
-
-
 
 
 char **allocArgv(Process *p, char **argv, int argc){

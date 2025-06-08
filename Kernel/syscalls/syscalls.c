@@ -33,6 +33,7 @@ static void syscall_getMemory(uint64_t pos, uint8_t * vec);
 static void syscall_playSound(uint64_t frequency, uint64_t ticks);
 static void syscall_setFontColor(uint8_t r, uint8_t g, uint8_t b);
 static uint32_t syscall_getFontColor();
+static void getMemoryInfo(); 
 
 typedef uint64_t (*Syscall)(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t); 
 
@@ -188,4 +189,7 @@ static void syscall_setFontColor(uint8_t r, uint8_t g, uint8_t b){
 static uint32_t syscall_getFontColor(){
     ColorInt c = { color: getFontColor() };
     return c.bits;
+}
+void getMemoryInfo(){
+    //DEPRECATED
 }

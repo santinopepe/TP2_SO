@@ -1,6 +1,4 @@
 #include <MemoryManager.h>
-#include <memoryInfo.h>
-#include <video.h>
 #include <string.h>
 
 #define SPLIT 1

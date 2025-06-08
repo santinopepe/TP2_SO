@@ -1,9 +1,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <MemoryManager.h>
-#include <memoryInfo.h>
 #include <lib.h>
-#include <video.h>
 #include <string.h>
 
 #define FREE 0

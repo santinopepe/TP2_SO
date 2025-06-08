@@ -40,7 +40,7 @@ void printErr(const char * s) {
 }
 
 int getchar() {
-    int c;
+    char c;
     int ret = read(STDIN, &c, 1);
     if (ret == 1)
         return c;
