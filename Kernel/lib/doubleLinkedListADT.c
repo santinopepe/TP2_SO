@@ -139,6 +139,7 @@ int removeElement(DoubleLinkedListADT list, void *data)
                 current->prev->next = current->next;
                 current->next->prev = current->prev;
                 list->size--;
+                free(current);
                 return 0;
             }
         }
