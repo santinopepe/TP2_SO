@@ -114,7 +114,7 @@ uint8_t closePipe(uint8_t fd)
 
 uint8_t writePipe(uint8_t fd, char *buffer, uint8_t size)
 {
-    if (fd >= MAX_PIPES || size > PIPE_SIZE || pipeManager->pipes[fd].writeLock || pipeManager->pipes[fd].size == PIPE_SIZE)
+    if (fd-3 >= MAX_PIPES || size > PIPE_SIZE || pipeManager->pipes[fd-3].writeLock || pipeManager->pipes[fd-3].size == PIPE_SIZE)
     {
         return 0;
     }
