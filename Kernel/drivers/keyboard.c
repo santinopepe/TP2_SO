@@ -51,7 +51,7 @@ static const char charHexMapShift[] = /* Mapa de scancode con shift a ASCII */
  * @return Indice del elemento en la cola
  */
 
-static void writeKey(char key);
+static void writeKey(int key);
 
 static void printMem(); 
 
@@ -106,7 +106,7 @@ void keyboardHandler(){
     }
 }
 
-static void writeKey(char key){
+static void writeKey(int key){
     if (((key & 0x7F) < sizeof(charHexMap) && charHexMap[key & 0x7F] != 0) || (int) key == EOF) {
 		_buffer[getBufferIndex(_bufferSize)] = key;
 		_bufferSize++;
@@ -114,7 +114,7 @@ static void writeKey(char key){
 	}
 }
 
-char getScancode() {
+int getScancode() {
     if(_bufferSize > 0){
         char c = _buffer[getBufferIndex(0)];
         _bufferStart = getBufferIndex(1);
@@ -124,7 +124,7 @@ char getScancode() {
     return 0;
 }
 
-char getAscii(){
+int getAscii(){
     sem_wait(IO_SEM_ID);
     int scanCode = getScancode();
     if(scanCode == EOF){

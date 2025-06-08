@@ -6,10 +6,10 @@
 void keyboardHandler();
 
 /* Devuelve el valor ascii del ultimo caracter en el buffer de teclado */
-char getAscii();
+int getAscii();
 
 /* Devuelve el scancode del ultimo caracter en el buffer de teclado */
-char getScancode();
+int getScancode();
 
 void initializeKeyboardDriver();
 
