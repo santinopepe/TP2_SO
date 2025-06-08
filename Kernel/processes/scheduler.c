@@ -145,6 +145,11 @@ int killProcess(uint16_t pid) {
         }
     }
 
+    if (scheduler->process[pid].children != NULL) {
+        freeList(scheduler->process[pid].children);
+        scheduler->process[pid].children = NULL;
+    }
+
     scheduler->processCount--;
     yield();
     return 0;
