@@ -17,7 +17,7 @@ Esta imagen contiene todas las herramientas necesarias para compilar el kernel y
 ## ⚙️ Uso del Script
 
 ```bash
-./build.sh [opciones]
+./SO_BUILD.sh [opciones]
 ```
 
 ### Opciones disponibles:
@@ -47,17 +47,17 @@ Esta imagen contiene todas las herramientas necesarias para compilar el kernel y
 
 ### Compilar y ejecutar normalmente:
 ```bash
-./build.sh
+./SO_BUILD.sh 
 ```
 
 ### Compilar sin ejecutar:
 ```bash
-./build.sh --no-run
+./SO_BUILD.sh  --no-run
 ```
 
 ### Compilar con test de memoria y tipo de MM personalizado:
 ```bash
-./build.sh --test-mm --mm=buddy
+./SO_BUILD.sh  --mm=buddy
 ```
 ---
 
@@ -78,4 +78,10 @@ Esta imagen contiene todas las herramientas necesarias para compilar el kernel y
 
 ## GDB
 - Para usar GDB deben instalar gdb-multiarch
+
+---
+
+## Información relevante
+- Para usar las mayuscúlas, o | y &, se debe utilizar la tecla shift izquierdo
+- El teclado esta mapeado como un teclado en ingles
 
