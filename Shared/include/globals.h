@@ -11,7 +11,7 @@
 
 #define MAX_PROCESOS 1000
 
-#define QUANTITY_OF_SEMAPHORES 512 //ESTO ES UNA LIMITACION
+#define QUANTITY_OF_SEMAPHORES 512 
 
 extern uint16_t fileDescriptors[3];
 

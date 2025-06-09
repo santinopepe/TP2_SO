@@ -14,7 +14,7 @@ Esta imagen contiene todas las herramientas necesarias para compilar el kernel y
 
 ---
 
-## ⚙️ Uso del Script
+## Uso del Script
 
 ```bash
 ./SO_BUILD.sh [opciones]
@@ -27,7 +27,6 @@ Esta imagen contiene todas las herramientas necesarias para compilar el kernel y
 | `--no-run`        | Evita ejecutar el kernel al finalizar la compilación.                      
 | `--mm=<tipo>`     | Define el tipo de administrador de memoria (`MM_TYPE`) a pasar a `make` (buddy o bitmap)   
 
-> ⚠️ Los flags pueden combinarse según necesidad.
 
 ---
 
@@ -69,10 +68,16 @@ Esta imagen contiene todas las herramientas necesarias para compilar el kernel y
 
 ---
 
-##  Notas
+## Información relevante
+- Para usar las mayuscúlas, o | y &, se debe utilizar la tecla shift izquierdo
+- El teclado esta mapeado como un teclado en ingles
 
-- El directorio del proyecto dentro del contenedor está fijado en `/root`.
-- Este script utiliza el flag `--privileged` para permitir acceso extendido a Docker.
+---
+
+## Combinaciones de teclas relevantes 
+- CTRL + C mata el proceso actual en foreground 
+- CTRL + D pone un EOF (-1)
+- CTRL + M imprime la memoria en el momento dado
 
 ---
 
@@ -80,8 +85,3 @@ Esta imagen contiene todas las herramientas necesarias para compilar el kernel y
 - Para usar GDB deben instalar gdb-multiarch
 
 ---
-
-## Información relevante
-- Para usar las mayuscúlas, o | y &, se debe utilizar la tecla shift izquierdo
-- El teclado esta mapeado como un teclado en ingles
-

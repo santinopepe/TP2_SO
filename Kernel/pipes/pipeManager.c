@@ -5,6 +5,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <process.h>
+#include <string.h>
 #include <scheduler.h>
 
 typedef struct pipeManagerCDT
@@ -194,8 +195,8 @@ uint8_t readPipe(uint8_t fd, char *buffer, uint8_t size)
 int killPipedProcesses() {
     uint8_t pid = getPid();
     SchedulerADT scheduler = getSchedulerADT();
-    if(strcmp(scheduler->process[pid].name, "phylo")){
-                return 0;
+    if(strcmp(scheduler->process[pid].name, "phylo") == 0 || strcmp(scheduler->process[pid].name, "philosopher") == 0) {
+        return 0;
     }
     for (int i = 0; i < MAX_PIPES; i++) {
         if (pipeManager->pipes[i].inputPID == pid || pipeManager->pipes[i].outputPID == pid) {

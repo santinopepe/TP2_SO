@@ -22,15 +22,6 @@ int itoa(uint64_t n, char *buffer, int base) {
 
 	unsigned int len = 0;
 	int i = 0;
-	// Mover a otra funcion si se quiere implementar un itoa que soporte negativos
-	/*if (n < 0 && base == 10)
-	{
-		n = -n;
-		buffer[i] = '-';
-		len++;
-		i++;
-	}*/
-
 	len += log(n, base) + 1;
 	while (n != 0) {
 		int r = n % base;
