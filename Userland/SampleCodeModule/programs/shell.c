@@ -256,7 +256,7 @@ static void executePipedCommands(CommandADT command)
         pid2 = createProcess((EntryPoint)commands[cmd_index2].f, argv2, argc2, 0, fileDescriptors2);
 
         if (( fileDescriptors2[0] = openPipe(pid2, 0)) == -1) {
-             printf("Error: Pipe fallo para el lector\n");
+            printf("Error: Pipe fallo para el lector\n");
             killProcess(pid1);
             killProcess(pid2);
             closePipe(fileDescriptors1[1]); 

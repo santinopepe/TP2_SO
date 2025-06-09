@@ -71,7 +71,7 @@ int killForegroundProcess(){
         // El proceso 0 es la shell
         if ( i != 0 && scheduler->process[i].status != DEAD && scheduler->process[i].fileDescriptors[STDIN] == STDIN ) // o i != shellPID
         {
-            index = 1; // Hay al menos un proceso en foreground
+            index = 1; // Hay al menos un proceso en foreground                
             killProcess(i);
         }
     }

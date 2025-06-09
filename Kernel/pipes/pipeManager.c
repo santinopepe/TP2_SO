@@ -212,6 +212,8 @@ int killPipedProcesses() {
     return killForegroundProcess();
 }
 
+
+
 void closePipeEndsForPID(uint16_t pid) {
     for (int i = 0; i < MAX_PIPES; i++) {
         Pipe *pipe = &pipeManager->pipes[i];

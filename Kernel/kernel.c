@@ -71,8 +71,6 @@ int main()
 	
 	createProcess((EntryPoint)sampleCodeModuleAddress, argv, 1, 2, fileDescriptors);
 	
-
-    
 	while(1) _hlt();
 	return 0;
 }
