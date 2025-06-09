@@ -24,7 +24,7 @@ static void printSpaces(int n);
 static int getCommandIndex(char *command); 
 
 
-static Command commands[] = {
+static Command commands[] = { 
     {"help", "Listado de comandos", (CommandFunction)help},
     {"man", "Manual de uso de los comandos", (CommandFunction)man},
     {"inforeg", "Informacion de los registos que fueron capturados en un momento arbitrario de ejecucion del sistema", (CommandFunction)printInfoReg},
@@ -251,13 +251,13 @@ int wc(int argc, char *argv[]) {
 void loop(int argc, char *argv[]) {
 
 	if (argc != 2) {
-		printf("You must insert ONE parameter indicating the number of seconds you desire to test\n");
+		printf("Debes insertar UN parámetro indicando el número de segundos que deseas probar\n");
 		return;
 	}
 	int secs = atoi(argv[1]);
 
 	if (secs < 0) {
-		printf("Number of seconds must be greater than 0\n");
+		printf("El numero de segundos debe ser mayor a cero\n");
 		return;
 	}
 	int realTime = secs / TICKS;

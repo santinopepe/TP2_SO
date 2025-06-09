@@ -4,7 +4,7 @@
 
 #include <stdint.h>
 
-typedef void (*CommandFunction)(int argc, char *argv[]); // Definicion de puntero a funcion
+typedef void (*CommandFunction)(int argc, char *argv[]); // Definicion de puntero a función
 
 typedef struct CommandCDT * CommandADT;
 

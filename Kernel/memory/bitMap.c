@@ -9,7 +9,7 @@
 #define FREE 0
 #define USED 1
 #define BORDER 2
-#define BLOCK_SIZE 64 // 64 bytes per block
+#define BLOCK_SIZE 64 // 64 bytes por bloque
 
 static void *firstAddress;
 

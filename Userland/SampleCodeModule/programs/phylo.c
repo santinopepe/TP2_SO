@@ -41,17 +41,17 @@ static void startDining() {
 	while (1) {
 		c = getchar();
 		if (c == 0) {
-			continue; // Ignore null characters
+			continue; // Ignora los caracteres que sea null
 		}
 		if(c == 'A') {
 			if(phylosCount == MAX_PHYLOS) {
 				sem_wait(PRINT_ID);
-				printf("Maximum philosophers reached\n");
+				printf("Maximo de filosofos alcanzado\n");
 				sem_post(PRINT_ID);
 				continue;
 			}
 			sem_wait(PRINT_ID);
-			printf("Adding philosopher\n");
+			printf("Agregando filosofo\n");
 			sem_post(PRINT_ID);
 			addPhilosopher();
 		} else if (c == 'R') {
@@ -78,11 +78,11 @@ static void startDining() {
 	}
 
 	if (sem_close(MUTEX_ID) == -1) {
-		printf("Error closing semaphpore mutex\n");
+		printf("Error cerrando semaphore mutex\n");
 		return;
 	}
 	if (sem_close(PRINT_ID) == -1) {
-		printf("Error closing semaphpore print\n");
+		printf("Error cerrando semaphore print\n");
 		return;
 	}
 	return;
@@ -95,7 +95,7 @@ static void addPhilosopher() {
 
     int semId = getFreeSemaphoreId();
     if (semId == -1) {
-        printf("No free semaphores available for philosopher %d\n", phylosCount);
+        printf("No semaforos libres disponibles para el filosofo %d\n", phylosCount);
         sem_post(MUTEX_ID);
         return;
     }
@@ -103,7 +103,7 @@ static void addPhilosopher() {
     philosopherSemIds[phylosCount] = semId;
 
     if (create_sem(semId, 0) == -1) {
-        printf("Error creating semaphore %d\n", semId);
+        printf("Error creando el semaforo %d\n", semId);
         sem_post(MUTEX_ID);
         return;
     }
@@ -113,7 +113,7 @@ static void addPhilosopher() {
 
     philosopherPids[phylosCount] = createProcess((EntryPoint) philosopher, params, 2, 1, fileDescriptors);
     if (philosopherPids[phylosCount] < 0) {
-        printf("Error creating philosopher %d\n", phylosCount);
+        printf("Error creando el filosofo %d\n", phylosCount);
         sem_close(semId);
         sem_post(MUTEX_ID);
         return;
@@ -133,7 +133,7 @@ static void removePhilosopher() {
     if (idx < 0) return;
 
     sem_wait(PRINT_ID);
-    printf("Removing philosopher: %d\n", idx);
+    printf("Removiendo el filosofo: %d\n", idx);
     sem_post(PRINT_ID);
 
     sem_wait(MUTEX_ID);
@@ -151,12 +151,12 @@ static void removePhilosopher() {
     }
     sem_post(semId); // Desbloquea por si está esperando
     if (killProcess(philosopherPids[idx]) == -1) {
-        printf("Error killing philosopher %d\n", idx);
+        printf("Error matando al filosofo %d\n", idx);
         sem_post(MUTEX_ID);
         return;
     }
     if (sem_close(semId) == -1) {
-        printf("Error closing semaphore %d\n", semId);
+        printf("Error cerrando el semaforo %d\n", semId);
         sem_post(MUTEX_ID);
         return;
     }
@@ -219,39 +219,39 @@ static void wait() {
 
 void phylo(int argc, char *argv[]) {
 	if (argc != 2) {
-		printf("You must insert ONE parameter indicating the amount of philosophers you desire to start with\n");
+		printf("Debes insertar UN parámetro que indique la cantidad de filósofos con los que deseas comenzar\n");
 		return;
 	}
 	int aux = atoi(argv[1]);
 	if (aux < MIN_PHYLOS || aux > MAX_PHYLOS) {
-		printf("The amount of philosophers must be a number between %d and %d\n", MIN_PHYLOS, MAX_PHYLOS);
+		printf("La cantidad de filosofos debe ser un numero entre %d y %d\n", MIN_PHYLOS, MAX_PHYLOS);
 		return;
 	}
 	if(sem_checkUse(MUTEX_ID) == 1) {
 		if(sem_close(MUTEX_ID) == -1) {
-			printf("Error closing semaphore mutex\n");
+			printf("Error cerrando semaphore mutex\n");
 			return;
 		}
 	}
 	if (create_sem(MUTEX_ID, 1) == -1) {
-		printf("Error creating semaphore mutex\n");
+		printf("Error creando semaphore mutex\n");
 		return;
 	}
 	if(sem_checkUse(PRINT_ID) == 1) {
 		sem_post(PRINT_ID);
 		if(sem_close(PRINT_ID) == -1) {
-			printf("Error closing semaphore print\n");
+			printf("Error cerrando semaphore print\n");
 			return;
 		}
 	}
 	if (create_sem(PRINT_ID, 1) == -1) {
-		printf("Error creating semaphore print\n");
+		printf("Error creando semaphore print\n");
 		return;
 	}
 
-	printf("Welcome to the Dining Philosophers\n");
-	printf("Commands: (A)dd, (R)emove, (Q)uit\n");
-	printf("Starting...\n");
+	printf("Bienvenido a los filosofos comensales\n");
+	printf("Commandos: (A)dd, (R)emove, (Q)uit\n");
+	printf("Empezando...\n");
 	for (int i = 0; i < aux; i++) {
 		addPhilosopher();
 	}

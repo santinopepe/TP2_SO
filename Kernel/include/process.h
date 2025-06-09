@@ -29,20 +29,14 @@ typedef struct process{
     int8_t children_sem; // Semáforo para esperar a los hijos
 } Process;
 
-
-
 void freeProcess(Process *process);
 
 uint16_t waitForChildren(); 
 
 uint64_t setUpStackFrame(uint64_t stackBase, uint64_t code, int argc, char *args[], EntryPoint originalEntryPoint);
 
-uint8_t initProcess(Process *process, uint16_t pid, uint64_t rip, char **args, int argc, uint16_t fileDescriptors[]);
-
 char **allocArgv(Process *p, char **argv, int argc);
 
 void processWrapper(void (*entryPoint)(int, char**), int argc, char **argv);
-
-
 
 #endif 

@@ -98,7 +98,7 @@ int8_t sem_wait(uint8_t sem){
     *pid = getPid(); 
     insertLast(semaphoresManager->semaphores[sem].waitingProcesses, pid);
     release(&semaphoresManager->semaphores[sem].lock);
-    blockProcess(*pid); //PODRIAMOS HACER blockBySemaphore(*pid); que setea una variable en el struct del PCB con un valor que inidica que lo bloqueo un semaforo
+    blockProcess(*pid);
     return 0; //El proceso se bloquea y espera a que el semaforo se libere
 }
 

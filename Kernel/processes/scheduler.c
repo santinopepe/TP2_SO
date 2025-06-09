@@ -192,13 +192,6 @@ void yield(){ //funcion para renuciar al cpu, para ceder su espacio a otro proce
 
 
 //Aca tmb habria que hacer lo de crear un stack falso, (el burro de arranque)
-// SS con 0x0
-// RSP con ???
-// RFLAGS con 0x202
-// CS con 0x8
-// RIP ??? ACA seria la primera instruccion a ejecutar
-// Los parametros de la funcion a ejecutar
-
 uint16_t createProcess(EntryPoint originalEntryPoint, char **argv, int argc, uint8_t priority, uint16_t fileDescriptors[]) {
     if (originalEntryPoint == NULL || argv == NULL || argc < 0) {
         return -1;
@@ -298,11 +291,6 @@ uint16_t getPid(){
    return scheduler->currentPID;
 }
 
-
-// ESTO puede anuint6dar peenemos que tener cuidado con el tema de procesos bloqueados, pq si 
-// bloqueamos el proceso y lo sacamos de la lista de listos, no se puede usar esta funcion
-// pero si no lo sacamos seteamos el currentpid al siguiente y despues lo sacamos de la lista de listos funca.
-//Pasa a ser el setter de running a ready
 void processSwitch() {
     SchedulerADT scheduler = getSchedulerADT();
     if (scheduler == NULL || scheduler->readyList->first == NULL) {

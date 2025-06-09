@@ -14,6 +14,7 @@
 #include <semaphoresManager.h>
 #include <scheduler.h>
 #include <globals.h>
+#include <process.h>
 #include "../include/time.h"
 
 /* File Descriptors*/

@@ -103,7 +103,7 @@ SECTION .text
 	mov rdi, %1 ; pasaje de parametro
 	call irqDispatcher
 
-	; signal pic EOI (End of Interrupt)
+	; señal pic EOI (End of Interrupt)
 	mov al, 20h
 	out 20h, al
 

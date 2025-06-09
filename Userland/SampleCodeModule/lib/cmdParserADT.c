@@ -6,7 +6,7 @@
 #include <string.h>   
 #include <stdio.h>
 
-#define MAX_COMMANDS 10 //Esto es una limitacion
+#define MAX_COMMANDS 3
 #define PIPE '|'
 #define BUFFER 256
 #define MAX_ARGS 10 

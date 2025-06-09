@@ -5,8 +5,8 @@
 
 #define READ 0
 #define WRITE 1
-#define PIPE_SIZE 512 // ESTO ES UNA LIMITACIÓN
-#define MAX_PIPES 50  // ESTO ES UNA LIMITACIÓN
+#define PIPE_SIZE 512 
+#define MAX_PIPES 50  
 
 typedef struct Pipe
 {

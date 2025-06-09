@@ -12,24 +12,24 @@
 #define MSG_BUFFER_EXCEEDED "Buffer de video excedido, la pantalla ha sido limpiada\n"
 
 struct vbe_mode_info_structure {
-    uint16_t attributes;        // deprecated, only bit 7 should be of interest to you, and it indicates the mode supports a linear frame buffer.
-    uint8_t window_a;           // deprecated
-    uint8_t window_b;           // deprecated
-    uint16_t granularity;       // deprecated; used while calculating bank numbers
+    uint16_t attributes;        // en desuso, solo el bit 7 debería ser de su interés e indica que el modo admite un búfer de cuadro lineal.
+    uint8_t window_a;           // en desuso
+    uint8_t window_b;           // en desuso
+    uint16_t granularity;       // en desuso; se utiliza al calcular los banks
     uint16_t window_size;
     uint16_t segment_a;
     uint16_t segment_b;
-    uint32_t win_func_ptr;      // deprecated; used to switch banks from protected mode without returning to real mode
-    uint16_t pitch;         // number of bytes per horizontal line
-    uint16_t width;         // width in pixels
-    uint16_t height;            // height in pixels
+    uint32_t win_func_ptr;      // en desuso; usado para cambiar banks de modo protegido sin volver a modo real
+    uint16_t pitch;         // numero de bytes por linea horizontal
+    uint16_t width;         // ancho en pixeles
+    uint16_t height;            // altura en pixeles
     uint8_t w_char;         // unused...
     uint8_t y_char;         // ...
     uint8_t planes;
-    uint8_t bpp;            // bits per pixel in this mode
-    uint8_t banks;          // deprecated; total number of banks in this mode
+    uint8_t bpp;            // bits por pixel en este modo
+    uint8_t banks;          // en desuso; numero total de banks en este modo
     uint8_t memory_model;
-    uint8_t bank_size;      // deprecated; size of a bank, almost always 64 KB but may be 16 KB...
+    uint8_t bank_size;      // en desuso; tamaño de un bank, casi siempre 64kb pero a veces 16kb
     uint8_t image_pages;
     uint8_t reserved0;
 
@@ -43,9 +43,9 @@ struct vbe_mode_info_structure {
     uint8_t reserved_position;
     uint8_t direct_color_attributes;
 
-    uint32_t framebuffer;       // physical address of the linear frame buffer; write here to draw to the screen
+    uint32_t framebuffer;       // direccion fisica del frame buffer lineal; escribi acá para dibujar en la pantalla
     uint32_t off_screen_mem_off;
-    uint16_t off_screen_mem_size;   // size of memory in the framebuffer but not being displayed on the screen
+    uint16_t off_screen_mem_size;   // tamaño de memoria en el framebuffer pero sin ser mostrado en pantalla
     uint8_t reserved1[206];
 } __attribute__ ((packed));
 

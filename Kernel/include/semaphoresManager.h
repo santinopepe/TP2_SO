@@ -1,7 +1,5 @@
 #include <stdint.h>
-
-#define QUANTITY_OF_SEMAPHORES 512 //ESTO ES UNA LIMITACION
-
+#include <globals.h>
 
 typedef struct semaphoresManagerCDT * SemaphoreADT;
 
