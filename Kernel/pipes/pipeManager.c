@@ -195,7 +195,7 @@ uint8_t readPipe(uint8_t fd, char *buffer, uint8_t size)
 int killPipedProcesses() {
     uint8_t pid = getPid();
     SchedulerADT scheduler = getSchedulerADT();
-    if(strcmp(scheduler->process[pid].name, "phylo") == 0 || strcmp(scheduler->process[pid].name, "philosopher") == 0) {
+    if(strcmp(scheduler->process[pid].name, "phylo") == 0 || strcmp(scheduler->process[pid].name, "philosopher") == 0 || strcmp(scheduler->process[pid].name, "endless_loop") == 0 || strcmp(scheduler->process[pid].name, "test-priority") == 0) {
         return 0;
     }
     for (int i = 0; i < MAX_PIPES; i++) {
