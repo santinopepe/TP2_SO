@@ -1,3 +1,5 @@
+// This is a personal academic project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 #include <pipeManager.h>
 #include <MemoryManager.h>
 #include <stddef.h>
@@ -191,6 +193,10 @@ uint8_t readPipe(uint8_t fd, char *buffer, uint8_t size)
 
 int killPipedProcesses() {
     uint8_t pid = getPid();
+    SchedulerADT scheduler = getSchedulerADT();
+    if(strcmp(scheduler->process[pid].name, "phylo")){
+                return 0;
+    }
     for (int i = 0; i < MAX_PIPES; i++) {
         if (pipeManager->pipes[i].inputPID == pid || pipeManager->pipes[i].outputPID == pid) {
             
