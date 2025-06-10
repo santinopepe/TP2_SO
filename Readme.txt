@@ -6,9 +6,8 @@ Este script automatiza el proceso de compilación, limpieza y ejecución del ker
 
 El script utiliza la imagen:
 
-```
-agodio/itba-so-multi-platform:3.0
-```
+**agodio/itba-so-multi-platform:3.0**
+
 
 Esta imagen contiene todas las herramientas necesarias para compilar el kernel y sus utilidades auxiliares.
 
